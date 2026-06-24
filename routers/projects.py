@@ -1,5 +1,6 @@
 """Project detail routes."""
 
+import json
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -63,6 +64,11 @@ async def project_detail(
 
     can_write = can_write_to_project(project_id, current_user, db)
 
+    members_json = json.dumps(
+        [{"id": m.id, "name": m.full_name} for m in members],
+        ensure_ascii=False,
+    )
+
     return templates.TemplateResponse(
         "project_detail.html",
         {
@@ -71,6 +77,7 @@ async def project_detail(
             "project": project,
             "note_items": note_items,
             "members": members,
+            "members_json": members_json,
             "can_write": can_write,
             "now": datetime.utcnow(),
             "unread_count": get_unread_count(current_user, db),

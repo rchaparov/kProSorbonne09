@@ -69,33 +69,23 @@
         {% if can_write %}
         <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Добавить заметку</h2>
-            <form action="/projects/{{ project.id }}/notes" method="post" enctype="multipart/form-data" class="space-y-4">
-                <textarea
-                    name="content"
-                    rows="4"
-                    required
-                    placeholder="Текст заметки..."
-                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
-                ></textarea>
-
-                {% if members %}
-                <div>
-                    <p class="text-sm font-medium text-gray-700 mb-2">Отметить участников:</p>
-                    <div class="flex flex-wrap gap-3">
-                        {% for member in members %}
-                        {% if member.id != current_user.id %}
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" name="mentions" value="{{ member.id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
-                            {{ member.full_name }}
-                            {% if member.business_role %}
-                            <span class="text-gray-500">({{ member.business_role }})</span>
-                            {% endif %}
-                        </label>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
+            <form
+                id="note-form"
+                action="/projects/{{ project.id }}/notes"
+                method="post"
+                enctype="multipart/form-data"
+                class="space-y-4"
+                data-members="{{ members_json | e }}"
+            >
+                <div class="relative" id="note-textarea-wrapper">
+                    <textarea
+                        name="content"
+                        rows="4"
+                        required
+                        placeholder="Текст заметки... Используйте @ для отметки участников"
+                        class="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                    ></textarea>
                 </div>
-                {% endif %}
 
                 <div>
                     <label for="note-file" class="block text-sm font-medium text-gray-700 mb-1">Файл (необязательно)</label>
@@ -249,4 +239,242 @@
         </div>
     </div>
 </div>
+
+{% if can_write %}
+<script>
+(function() {
+    const form = document.getElementById('note-form');
+    if (!form) return;
+
+    const textarea = form.querySelector('textarea[name="content"]');
+    const members = JSON.parse(form.dataset.members || '[]');
+    const allMembers = [{ id: 'all', name: 'all' }].concat(members);
+
+    let dropdown = null;
+    let mentionStart = -1;
+    let activeIndex = 0;
+    let filteredItems = [];
+    const selectedIds = new Set();
+
+    function getCaretCoordinates(element, position) {
+        const mirrorProperties = [
+            'direction', 'boxSizing', 'width', 'height', 'overflowX', 'overflowY',
+            'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+            'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+            'fontStyle', 'fontVariant', 'fontWeight', 'fontSize', 'lineHeight',
+            'fontFamily', 'textAlign', 'textTransform', 'letterSpacing', 'wordSpacing'
+        ];
+
+        const mirror = document.createElement('div');
+        const computed = window.getComputedStyle(element);
+        mirrorProperties.forEach(function(prop) {
+            mirror.style[prop] = computed[prop];
+        });
+        mirror.style.position = 'absolute';
+        mirror.style.visibility = 'hidden';
+        mirror.style.whiteSpace = 'pre-wrap';
+        mirror.style.wordWrap = 'break-word';
+        mirror.style.overflow = 'hidden';
+        mirror.style.width = computed.width;
+        mirror.style.top = '0';
+        mirror.style.left = '-9999px';
+
+        const textBefore = element.value.substring(0, position);
+        const textAfter = element.value.substring(position) || '\u200b';
+        mirror.textContent = textBefore;
+        const marker = document.createElement('span');
+        marker.textContent = textAfter;
+        mirror.appendChild(marker);
+        document.body.appendChild(mirror);
+
+        const elementRect = element.getBoundingClientRect();
+        const markerRect = marker.getBoundingClientRect();
+        const mirrorRect = mirror.getBoundingClientRect();
+        const top = elementRect.top + (markerRect.top - mirrorRect.top) - element.scrollTop;
+        const left = elementRect.left + (markerRect.left - mirrorRect.left) - element.scrollLeft;
+
+        document.body.removeChild(mirror);
+        return { top: top, left: left };
+    }
+
+    function positionDropdown() {
+        if (!dropdown) return;
+        const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight, 10) || 20;
+        const coords = getCaretCoordinates(textarea, mentionStart);
+        let top = coords.top + lineHeight;
+        let left = coords.left;
+
+        dropdown.style.top = top + 'px';
+        dropdown.style.left = left + 'px';
+
+        const rect = dropdown.getBoundingClientRect();
+        if (rect.right > window.innerWidth - 8) {
+            left -= rect.right - window.innerWidth + 8;
+            dropdown.style.left = Math.max(8, left) + 'px';
+        }
+        if (rect.bottom > window.innerHeight - 8) {
+            top = coords.top - rect.height - 4;
+            dropdown.style.top = Math.max(8, top) + 'px';
+        }
+    }
+
+    function createDropdown() {
+        dropdown = document.createElement('div');
+        dropdown.id = 'mention-dropdown';
+        dropdown.style.position = 'fixed';
+        dropdown.style.background = 'white';
+        dropdown.style.border = '0.5px solid #E5E7EB';
+        dropdown.style.borderRadius = '8px';
+        dropdown.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+        dropdown.style.zIndex = '50';
+        dropdown.style.minWidth = '200px';
+        dropdown.style.maxHeight = '200px';
+        dropdown.style.overflowY = 'auto';
+        document.body.appendChild(dropdown);
+    }
+
+    function renderDropdownItems() {
+        if (!dropdown) return;
+        dropdown.innerHTML = '';
+        filteredItems.forEach(function(member, index) {
+            const item = document.createElement('div');
+            item.className = 'mention-item';
+            item.style.padding = '8px 12px';
+            item.style.cursor = 'pointer';
+            if (index === activeIndex) {
+                item.style.background = '#EEF2FF';
+            }
+            item.addEventListener('mouseenter', function() {
+                activeIndex = index;
+                renderDropdownItems();
+            });
+            item.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                insertMention(member);
+            });
+
+            if (member.id === 'all') {
+                item.innerHTML = '<span style="font-style: italic;">@all</span> <span style="font-size: 12px; color: #6B7280;">— все участники</span>';
+            } else {
+                item.textContent = member.name;
+            }
+            dropdown.appendChild(item);
+        });
+        positionDropdown();
+    }
+
+    function showDropdown(filter) {
+        const query = filter.toLowerCase();
+        filteredItems = allMembers.filter(function(member) {
+            if (member.id === 'all') {
+                return !query || 'all'.indexOf(query) === 0;
+            }
+            return member.name.toLowerCase().indexOf(query) !== -1;
+        });
+
+        if (filteredItems.length === 0) {
+            hideDropdown();
+            return;
+        }
+
+        activeIndex = 0;
+        if (!dropdown) {
+            createDropdown();
+        }
+        renderDropdownItems();
+    }
+
+    function hideDropdown() {
+        if (dropdown) {
+            dropdown.remove();
+            dropdown = null;
+        }
+        mentionStart = -1;
+        activeIndex = 0;
+        filteredItems = [];
+    }
+
+    function addHiddenInput(userId) {
+        const id = String(userId);
+        if (selectedIds.has(id)) return;
+        selectedIds.add(id);
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'mentions';
+        input.value = id;
+        form.appendChild(input);
+    }
+
+    function insertMention(member) {
+        const pos = textarea.selectionStart;
+        const before = textarea.value.substring(0, mentionStart);
+        const after = textarea.value.substring(pos);
+        const mentionText = '@' + member.name + ' ';
+        textarea.value = before + mentionText + after;
+        const newPos = before.length + mentionText.length;
+        textarea.selectionStart = newPos;
+        textarea.selectionEnd = newPos;
+
+        if (member.id === 'all') {
+            members.forEach(function(m) {
+                addHiddenInput(m.id);
+            });
+        } else {
+            addHiddenInput(member.id);
+        }
+
+        hideDropdown();
+        textarea.focus();
+    }
+
+    textarea.addEventListener('input', function() {
+        const pos = this.selectionStart;
+        const text = this.value.substring(0, pos);
+        const atIdx = text.lastIndexOf('@');
+        if (atIdx === -1) {
+            hideDropdown();
+            return;
+        }
+        const query = text.substring(atIdx + 1);
+        if (query.indexOf(' ') !== -1 || query.indexOf('\n') !== -1) {
+            hideDropdown();
+            return;
+        }
+        mentionStart = atIdx;
+        showDropdown(query);
+    });
+
+    textarea.addEventListener('keydown', function(e) {
+        if (!dropdown) return;
+        if (e.key === 'Escape') {
+            hideDropdown();
+            e.preventDefault();
+            return;
+        }
+        if (e.key === 'Enter' && filteredItems.length > 0) {
+            insertMention(filteredItems[activeIndex]);
+            e.preventDefault();
+            return;
+        }
+        if (e.key === 'ArrowDown') {
+            activeIndex = (activeIndex + 1) % filteredItems.length;
+            renderDropdownItems();
+            e.preventDefault();
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            activeIndex = (activeIndex - 1 + filteredItems.length) % filteredItems.length;
+            renderDropdownItems();
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (dropdown && !dropdown.contains(e.target) && e.target !== textarea) {
+            hideDropdown();
+        }
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}
