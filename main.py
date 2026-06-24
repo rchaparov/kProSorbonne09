@@ -11,6 +11,7 @@ from routers.admin import router as admin_router
 from routers.auth_router import router as auth_router
 from routers.dashboard import router as dashboard_router
 from routers.notes import router as notes_router
+from routers.profile import router as profile_router
 from routers.projects import router as projects_router
 
 validate_settings()
@@ -25,6 +26,7 @@ app.include_router(dashboard_router)
 app.include_router(projects_router)
 app.include_router(notes_router)
 app.include_router(admin_router)
+app.include_router(profile_router)
 
 
 @app.on_event("startup")

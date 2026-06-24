@@ -12,6 +12,24 @@ from database import Note, NoteAttachment, User, get_db_session
 
 router = APIRouter(tags=["notes"])
 
+INLINE_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+}
+
+
+def _attachment_disposition(content_type: str) -> str:
+    """Return inline disposition for PDF/images, attachment otherwise."""
+    if content_type == "application/pdf" or content_type.startswith("image/"):
+        return "inline"
+    if content_type in INLINE_TYPES:
+        return "inline"
+    return "attachment"
+
 
 def _require_user(current_user) -> User:
     """Ensure the dependency resolved to an authenticated user."""
@@ -137,6 +155,31 @@ async def download_attachment(
         media_type=attachment.content_type,
         headers={
             "Content-Disposition": f'attachment; filename="{attachment.original_filename}"',
+        },
+    )
+
+
+@router.get("/attachments/{attachment_id}/view")
+async def view_attachment(
+    attachment_id: int,
+    current_user=Depends(get_current_user),
+    db: DbSession = Depends(get_db_session),
+):
+    """View a note attachment inline when supported by the browser."""
+    user = _require_user(current_user)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    attachment = db.query(NoteAttachment).filter_by(id=attachment_id).first()
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    disposition = _attachment_disposition(attachment.content_type)
+    return Response(
+        content=attachment.file_data,
+        media_type=attachment.content_type,
+        headers={
+            "Content-Disposition": f'{disposition}; filename="{attachment.original_filename}"',
         },
     )
 
