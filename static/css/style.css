@@ -1,0 +1,16 @@
+body {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+    transition: color 0.15s ease-in-out;
+}
+
+button {
+    cursor: pointer;
+}
+
+input:focus,
+button:focus {
+    outline: none;
+}
