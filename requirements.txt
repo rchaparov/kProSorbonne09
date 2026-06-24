@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+gunicorn
+jinja2
+python-multipart
+sqlalchemy==1.4.*
+alembic
+bcrypt
+psycopg2-binary
+pydantic==1.10.*
+python-dotenv
+aiofiles
