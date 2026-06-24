@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Новый материал — K-PRO Sorbonne 09 TeamSpace{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <a href="/materials" class="text-sm text-indigo-600 hover:text-indigo-800">← Материалы</a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2 mb-6">Добавить материал</h1>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <form action="/materials/new" method="post" enctype="multipart/form-data" class="space-y-4">
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Заголовок</label>
+                <input type="text" id="title" name="title" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                <textarea id="description" name="description" rows="4" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"></textarea>
+            </div>
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Категория</label>
+                <select id="category" name="category" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="url" class="block text-sm font-medium text-gray-700 mb-1">Ссылка (необязательно)</label>
+                <input type="url" id="url" name="url" placeholder="https://..." class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="file" class="block text-sm font-medium text-gray-700 mb-1">Файл (необязательно)</label>
+                <input type="file" id="file" name="file" class="text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100">
+            </div>
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Сохранить</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

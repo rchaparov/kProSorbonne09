@@ -192,6 +192,46 @@ class Notification(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
+MATERIAL_CATEGORIES = ["Презентации", "Статьи", "Ссылки", "Видео", "Другое"]
+
+
+class Material(Base):
+    """Shared team knowledge base entry."""
+
+    __tablename__ = "materials"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(500), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(100), nullable=False, default="Другое")
+    url = Column(String(2000), nullable=True)
+    added_by = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class MaterialFile(Base):
+    """File attached to a knowledge base material."""
+
+    __tablename__ = "material_files"
+
+    id = Column(Integer, primary_key=True)
+    material_id = Column(
+        Integer,
+        ForeignKey("materials.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    filename = Column(String(36), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    content_type = Column(String(255), nullable=False)
+    file_data = Column(LargeBinary, nullable=False)
+    uploaded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 def init_database(database_url: str) -> None:
     """Initialize SQLAlchemy engine and session factory."""
     global _engine, SessionLocal

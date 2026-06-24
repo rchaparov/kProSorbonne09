@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}TeamSpace{% endblock %}</title>
+    <title>{% block title %}K-PRO Sorbonne 09 TeamSpace{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -13,7 +13,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center gap-6">
-                    <a href="/" class="text-lg font-semibold text-gray-900">TeamSpace</a>
+                    <a href="/" class="text-lg font-semibold text-gray-900">K-PRO Sorbonne 09</a>
+                    <a href="/" class="text-sm text-gray-600 hover:text-indigo-600">Проекты</a>
+                    <a href="/materials" class="text-sm text-gray-600 hover:text-indigo-600">Материалы</a>
                     {% if current_user.system_role == "admin" %}
                     <a href="/admin/" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-indigo-600">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
