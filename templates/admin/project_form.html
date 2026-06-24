@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование проекта — Админ{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="/admin/projects" class="text-sm text-indigo-600 hover:text-indigo-800">← Проекты</a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2">Редактирование проекта</h1>
+</div>
+
+<div class="bg-white shadow rounded-lg p-6 max-w-2xl">
+    <form action="{{ form_action }}" method="post" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Название</label>
+            <input type="text" name="title" value="{{ project.title }}" required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+            <textarea name="description" rows="4" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">{{ project.description or '' }}</textarea>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Дедлайн</label>
+                <input type="date" name="deadline" value="{% if project.deadline %}{{ project.deadline.strftime('%Y-%m-%d') }}{% endif %}" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+                <select name="status" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                    <option value="active" {% if project.status == 'active' %}selected{% endif %}>Активный</option>
+                    <option value="completed" {% if project.status == 'completed' %}selected{% endif %}>Завершён</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Сохранить</button>
+            <a href="/admin/projects" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
