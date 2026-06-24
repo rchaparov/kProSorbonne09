@@ -1,5 +1,6 @@
 """Note and attachment routes."""
 
+from typing import List, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -8,7 +9,15 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth import can_write_to_project, get_current_user
 from config import settings
-from database import Note, NoteAttachment, User, get_db_session
+from database import (
+    Note,
+    NoteAttachment,
+    NoteMention,
+    Notification,
+    Project,
+    User,
+    get_db_session,
+)
 
 router = APIRouter(tags=["notes"])
 
@@ -47,10 +56,12 @@ def _can_delete_note(note: Note, user: User) -> bool:
 async def create_note(
     project_id: int,
     content: str = Form(...),
+    mentions: List[int] = Form(default=[]),
+    file: Optional[UploadFile] = File(default=None),
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
-    """Create a note in a project and redirect to the project page."""
+    """Create a note in a project with optional file and member mentions."""
     user = _require_user(current_user)
     if isinstance(user, RedirectResponse):
         return user
@@ -58,8 +69,45 @@ async def create_note(
     if not can_write_to_project(project_id, user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
+    project = db.query(Project).filter_by(id=project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     note = Note(project_id=project_id, author_id=user.id, content=content)
     db.add(note)
+    db.flush()
+
+    if file and file.filename:
+        file_bytes = await file.read()
+        if len(file_bytes) > settings.MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Файл превышает лимит {settings.MAX_UPLOAD_BYTES // 1048576}MB",
+            )
+        db.add(
+            NoteAttachment(
+                note_id=note.id,
+                filename=str(uuid4()),
+                original_filename=file.filename,
+                file_size=len(file_bytes),
+                content_type=file.content_type or "application/octet-stream",
+                file_data=file_bytes,
+            )
+        )
+
+    for user_id in mentions:
+        if user_id == user.id:
+            continue
+        db.add(NoteMention(note_id=note.id, user_id=user_id))
+        db.add(
+            Notification(
+                user_id=user_id,
+                note_id=note.id,
+                project_id=project_id,
+                message=f"{user.full_name} упомянул вас в проекте «{project.title}»",
+            )
+        )
+
     db.commit()
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
 

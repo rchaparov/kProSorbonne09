@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession
 
-from auth import hash_password, require_admin
+from auth import get_unread_count, hash_password, require_admin
 from database import Project, ProjectMember, User, get_db_session
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -21,14 +21,19 @@ SYSTEM_ROLES = ("admin", "coordinator", "member")
 def _template_context(
     request: Request,
     current_user: User,
+    db: DbSession | None = None,
     **extra,
 ) -> dict:
     """Build common template context for admin pages."""
+    unread_count = 0
+    if db is not None:
+        unread_count = get_unread_count(current_user, db)
     return {
         "request": request,
         "current_user": current_user,
         "msg": request.query_params.get("msg"),
         "error": request.query_params.get("error"),
+        "unread_count": unread_count,
         **extra,
     }
 
@@ -64,7 +69,7 @@ async def admin_index(
 
     return templates.TemplateResponse(
         "admin/index.html",
-        _template_context(request, current_user),
+        _template_context(request, current_user, db=db),
     )
 
 
@@ -81,7 +86,7 @@ async def admin_users(
     users = db.query(User).order_by(User.created_at.desc()).all()
     return templates.TemplateResponse(
         "admin/users.html",
-        _template_context(request, current_user, users=users, system_roles=SYSTEM_ROLES),
+        _template_context(request, current_user, db=db, users=users, system_roles=SYSTEM_ROLES),
     )
 
 
@@ -142,6 +147,7 @@ async def admin_users_edit_form(
         _template_context(
             request,
             current_user,
+            db=db,
             user=user,
             system_roles=SYSTEM_ROLES,
             form_action=f"/admin/users/{user_id}/edit",
@@ -246,6 +252,7 @@ async def admin_projects(
         _template_context(
             request,
             current_user,
+            db=db,
             projects=projects,
             member_counts=member_counts,
         ),
@@ -298,6 +305,7 @@ async def admin_projects_edit_form(
         _template_context(
             request,
             current_user,
+            db=db,
             project=project,
             form_action=f"/admin/projects/{project_id}/edit",
         ),
@@ -385,6 +393,7 @@ async def admin_project_members(
         _template_context(
             request,
             current_user,
+            db=db,
             project=project,
             members=members,
             available_users=available_users,

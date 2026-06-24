@@ -21,6 +21,7 @@ async def login_page(request: Request, error: str | None = None):
             "request": request,
             "current_user": None,
             "error": error,
+            "unread_count": 0,
         },
     )
 

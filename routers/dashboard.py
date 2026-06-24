@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession
 
-from auth import get_current_user
+from auth import get_current_user, get_unread_count
 from database import Project, ProjectMember, User, get_db_session
 
 router = APIRouter(tags=["dashboard"])
@@ -40,5 +40,6 @@ async def dashboard(
             "projects": projects,
             "member_counts": member_counts,
             "now": datetime.utcnow(),
+            "unread_count": get_unread_count(current_user, db),
         },
     )

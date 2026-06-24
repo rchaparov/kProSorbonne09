@@ -7,8 +7,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession
 
-from auth import can_write_to_project, get_current_user
-from database import Note, NoteAttachment, Project, ProjectMember, User, get_db_session
+from auth import can_write_to_project, get_current_user, get_unread_count
+from database import Note, NoteAttachment, NoteMention, Project, ProjectMember, User, get_db_session
 
 router = APIRouter(tags=["projects"])
 templates = Jinja2Templates(directory="templates")
@@ -39,11 +39,18 @@ async def project_detail(
     for note in notes:
         author = db.query(User).filter_by(id=note.author_id).first()
         attachments = db.query(NoteAttachment).filter_by(note_id=note.id).all()
+        mention_rows = db.query(NoteMention).filter_by(note_id=note.id).all()
+        mentioned_users = []
+        for mention in mention_rows:
+            mentioned = db.query(User).filter_by(id=mention.user_id).first()
+            if mentioned:
+                mentioned_users.append(mentioned)
         note_items.append(
             {
                 "note": note,
                 "author": author,
                 "attachments": attachments,
+                "mentions": mentioned_users,
             }
         )
 
@@ -66,5 +73,6 @@ async def project_detail(
             "members": members,
             "can_write": can_write,
             "now": datetime.utcnow(),
+            "unread_count": get_unread_count(current_user, db),
         },
     )

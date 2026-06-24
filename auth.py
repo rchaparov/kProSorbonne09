@@ -12,7 +12,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session as DbSession
 
 from config import settings
-from database import ProjectMember, Session as UserSession, User, get_db_session
+from database import ProjectMember, Session as UserSession, User, Notification, get_db_session
 
 
 def generate_token(n: int = 64) -> str:
@@ -112,4 +112,13 @@ def can_write_to_project(project_id: int, user: User, db: DbSession) -> bool:
         .filter_by(project_id=project_id, user_id=user.id)
         .first()
         is not None
+    )
+
+
+def get_unread_count(user: User, db: DbSession) -> int:
+    """Return the number of unread notifications for a user."""
+    return (
+        db.query(Notification)
+        .filter_by(user_id=user.id, is_read=False)
+        .count()
     )

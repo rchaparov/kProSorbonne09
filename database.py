@@ -148,6 +148,50 @@ class NoteAttachment(Base):
     uploaded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
+class NoteMention(Base):
+    """User mention in a project note."""
+
+    __tablename__ = "note_mentions"
+
+    id = Column(Integer, primary_key=True)
+    note_id = Column(
+        Integer,
+        ForeignKey("notes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+
+class Notification(Base):
+    """In-app notification for a user."""
+
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    note_id = Column(
+        Integer,
+        ForeignKey("notes.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    project_id = Column(
+        Integer,
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    message = Column(String(500), nullable=False)
+    is_read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 def init_database(database_url: str) -> None:
     """Initialize SQLAlchemy engine and session factory."""
     global _engine, SessionLocal
