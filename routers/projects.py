@@ -23,6 +23,11 @@ from database import (
     ProjectMember,
     get_db_session,
 )
+from utils.progress import (
+    PROJECT_STATUS_COLORS,
+    PROJECT_STATUS_LABELS,
+    project_progress,
+)
 
 router = APIRouter(tags=["projects"])
 templates = Jinja2Templates(directory="templates")
@@ -151,6 +156,10 @@ async def project_detail(
         else datetime.utcnow().isoformat()
     )
 
+    progress_pct = project_progress(
+        project.status, checklist_done, checklist_total
+    )
+
     return templates.TemplateResponse(
         "project_detail.html",
         {
@@ -175,5 +184,8 @@ async def project_detail(
             "notes_to": notes_to,
             "page_size": PAGE_SIZE,
             "last_seen_at": last_seen_at,
+            "progress_pct": progress_pct,
+            "status_labels": PROJECT_STATUS_LABELS,
+            "status_colors": PROJECT_STATUS_COLORS,
         },
     )

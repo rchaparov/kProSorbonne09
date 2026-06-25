@@ -36,7 +36,10 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
                 <select name="status" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
-                    <option value="active">Активный</option>
+                    <option value="planning" selected>Планирование</option>
+                    <option value="active">В работе</option>
+                    <option value="review">На проверке</option>
+                    <option value="on_hold">Приостановлен</option>
                     <option value="completed">Завершён</option>
                 </select>
             </div>
@@ -64,7 +67,9 @@
                     {% if project.deadline %}<time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>{% else %}—{% endif %}
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600">
-                    {% if project.status == 'completed' %}Завершён{% else %}Активный{% endif %}
+                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ status_colors.get(project.status, 'bg-gray-100 text-gray-700') }}">
+                        {{ status_labels.get(project.status, project.status) }}
+                    </span>
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ member_counts.get(project.id, 0) }}</td>
                 <td class="px-4 py-3 text-sm text-right">

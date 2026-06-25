@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_unread_count, hash_password, require_admin
 from database import Project, ProjectMember, User, get_db_session
+from utils.progress import PROJECT_STATUSES, PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="templates")
@@ -34,6 +35,8 @@ def _template_context(
         "msg": request.query_params.get("msg"),
         "error": request.query_params.get("error"),
         "unread_count": unread_count,
+        "status_labels": PROJECT_STATUS_LABELS,
+        "status_colors": PROJECT_STATUS_COLORS,
         **extra,
     }
 
@@ -266,7 +269,7 @@ async def admin_projects_create(
     title: str = Form(...),
     description: str = Form(""),
     deadline: str = Form(""),
-    status: str = Form("active"),
+    status: str = Form("planning"),
     current_user: Union[User, RedirectResponse] = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
@@ -278,7 +281,7 @@ async def admin_projects_create(
         title=title,
         description=description or None,
         deadline=_parse_deadline(deadline),
-        status=status if status in ("active", "completed") else "active",
+        status=status if status in PROJECT_STATUSES else "planning",
         created_by=current_user.id,
     )
     db.add(project)
@@ -320,7 +323,7 @@ async def admin_projects_edit(
     title: str = Form(...),
     description: str = Form(""),
     deadline: str = Form(""),
-    status: str = Form("active"),
+    status: str = Form("planning"),
     current_user: Union[User, RedirectResponse] = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
@@ -335,7 +338,7 @@ async def admin_projects_edit(
     project.title = title
     project.description = description or None
     project.deadline = _parse_deadline(deadline)
-    project.status = status if status in ("active", "completed") else project.status
+    project.status = status if status in PROJECT_STATUSES else project.status
     project.updated_at = datetime.utcnow()
     db.commit()
     return _redirect("/admin/projects", msg="project_updated")

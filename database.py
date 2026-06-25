@@ -66,7 +66,7 @@ class Project(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     deadline = Column(DateTime, nullable=True)
-    status = Column(String(32), nullable=False, default="active")
+    status = Column(String(32), nullable=False, default="planning")
     created_by = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -124,6 +124,7 @@ class ChecklistItem(Base):
         nullable=False,
     )
     position = Column(Integer, nullable=False, default=0)
+    deadline = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
         DateTime,

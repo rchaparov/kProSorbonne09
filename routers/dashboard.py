@@ -10,6 +10,11 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count
 from database import ChecklistItem, Project, ProjectMember, User, get_db_session
+from utils.progress import (
+    PROJECT_STATUS_COLORS,
+    PROJECT_STATUS_LABELS,
+    project_progress,
+)
 
 router = APIRouter(tags=["dashboard"])
 templates = Jinja2Templates(directory="templates")
@@ -48,6 +53,13 @@ async def dashboard(
             "done": int(row.done or 0),
         }
 
+    progress_pcts = {}
+    for project in projects:
+        stats = checklist_stats.get(project.id, {"done": 0, "total": 0})
+        progress_pcts[project.id] = project_progress(
+            project.status, stats["done"], stats["total"]
+        )
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -56,6 +68,9 @@ async def dashboard(
             "projects": projects,
             "member_counts": member_counts,
             "checklist_stats": checklist_stats,
+            "progress_pcts": progress_pcts,
+            "status_labels": PROJECT_STATUS_LABELS,
+            "status_colors": PROJECT_STATUS_COLORS,
             "now": datetime.utcnow(),
             "unread_count": get_unread_count(current_user, db),
         },

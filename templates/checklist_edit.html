@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать пункт — K-PRO Sorbonne 09 TeamSpace{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <a href="/projects/{{ project.id }}" class="text-sm text-indigo-600 hover:text-indigo-800">← {{ project.title }}</a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-4 mb-6">Редактировать пункт чеклиста</h1>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <form action="/checklist/{{ item.id }}/edit" method="post" class="space-y-4">
+            <div>
+                <label for="text" class="block text-sm font-medium text-gray-700 mb-1">Текст пункта</label>
+                <textarea
+                    id="text"
+                    name="text"
+                    rows="3"
+                    required
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                >{{ item.text }}</textarea>
+            </div>
+            <div>
+                <label for="assigned_to" class="block text-sm font-medium text-gray-700 mb-1">Ответственные</label>
+                <select id="assigned_to" name="assigned_to" multiple
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 min-h-[80px]">
+                    {% for member in members %}
+                    <option value="{{ member.id }}" {% if member.id in current_assignee_ids %}selected{% endif %}>
+                        {{ member.full_name }}{% if member.business_role %} ({{ member.business_role }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Удержите Ctrl (Cmd на Mac) для выбора нескольких</p>
+            </div>
+            <div>
+                <label for="deadline" class="block text-sm font-medium text-gray-700 mb-1">Дедлайн</label>
+                <input
+                    type="date"
+                    id="deadline"
+                    name="deadline"
+                    value="{% if item.deadline %}{{ item.deadline.strftime('%Y-%m-%d') }}{% endif %}"
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                >
+                <p class="text-xs text-gray-400 mt-1">Дедлайн (необязательно)</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button
+                    type="submit"
+                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                >
+                    Сохранить
+                </button>
+                <a
+                    href="/projects/{{ project.id }}"
+                    class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                    Отмена
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

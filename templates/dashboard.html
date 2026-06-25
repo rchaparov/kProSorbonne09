@@ -13,7 +13,7 @@
     {% for project in projects %}
     <a
         href="/projects/{{ project.id }}"
-        class="block bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow {% if project.status == 'completed' %}opacity-60{% endif %}"
+        class="block bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow {% if project.status in ('completed', 'on_hold') %}opacity-60{% endif %}"
     >
         <div class="flex items-start gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-indigo-600 flex-shrink-0" aria-hidden="true">
@@ -53,26 +53,28 @@
             {% endif %}
 
             <div class="flex flex-wrap items-center gap-2">
-                {% if project.status == 'completed' %}
-                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Завершён</span>
-                {% else %}
-                <span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">Активный</span>
-                {% endif %}
+                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ status_colors.get(project.status, 'bg-gray-100 text-gray-700') }}">
+                    {{ status_labels.get(project.status, project.status) }}
+                </span>
             </div>
 
-            {% set stats = checklist_stats.get(project.id) %}
-            {% if stats and stats.total > 0 %}
-            {% set percent = (stats.done / stats.total * 100)|round|int %}
-            <div>
+            {% set pct = progress_pcts.get(project.id, 0) %}
+            <div class="mt-2">
                 <div class="flex items-center justify-between mb-1">
-                    <span class="text-xs text-gray-500">Задачи: {{ stats.done }}/{{ stats.total }}</span>
-                    <span class="text-xs font-medium text-indigo-600">{{ percent }}%</span>
+                    <span class="text-xs text-gray-500">
+                        {% set stats = checklist_stats.get(project.id) %}
+                        {% if stats and stats.total > 0 %}
+                        Задачи: {{ stats.done }}/{{ stats.total }}
+                        {% else %}
+                        По статусу
+                        {% endif %}
+                    </span>
+                    <span class="text-xs font-semibold text-indigo-600">{{ pct }}%</span>
                 </div>
                 <div class="bg-gray-200 rounded-full h-1.5">
-                    <div class="bg-indigo-600 h-1.5 rounded-full transition-all" style="width: {{ percent }}%"></div>
+                    <div class="bg-indigo-600 h-1.5 rounded-full transition-all" style="width: {{ pct }}%"></div>
                 </div>
             </div>
-            {% endif %}
 
             <div class="flex flex-wrap items-center gap-2">
                 <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
