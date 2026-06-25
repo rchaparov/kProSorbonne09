@@ -14,6 +14,7 @@ from auth import can_write_to_project, get_current_user, get_unread_count
 from config import settings
 from database import (
     ChecklistItem,
+    ChecklistItemAssignee,
     Material,
     Note,
     NoteMaterialLink,
@@ -116,7 +117,9 @@ async def project_detail(
     checklist_items = (
         db.query(ChecklistItem)
         .filter_by(project_id=project_id)
-        .options(joinedload(ChecklistItem.assigned_user))
+        .options(
+            joinedload(ChecklistItem.assignees).joinedload(ChecklistItemAssignee.user)
+        )
         .order_by(ChecklistItem.position)
         .all()
     )

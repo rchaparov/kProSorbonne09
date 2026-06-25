@@ -123,11 +123,6 @@ class ChecklistItem(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    assigned_to = Column(
-        Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
-    )
     position = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
@@ -137,8 +132,36 @@ class ChecklistItem(Base):
         onupdate=datetime.utcnow,
     )
 
-    assigned_user = relationship("User", foreign_keys=[assigned_to])
     creator = relationship("User", foreign_keys=[created_by])
+    assignees = relationship(
+        "ChecklistItemAssignee",
+        cascade="all, delete-orphan",
+        back_populates="item",
+    )
+
+
+class ChecklistItemAssignee(Base):
+    """User assigned to a checklist item."""
+
+    __tablename__ = "checklist_item_assignees"
+    __table_args__ = (
+        UniqueConstraint("item_id", "user_id", name="uq_checklist_assignees"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    item_id = Column(
+        Integer,
+        ForeignKey("checklist_items.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    user = relationship("User")
+    item = relationship("ChecklistItem", back_populates="assignees")
 
 
 class Note(Base):

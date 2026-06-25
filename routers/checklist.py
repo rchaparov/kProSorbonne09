@@ -1,7 +1,7 @@
 """Project checklist routes."""
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.responses import RedirectResponse
@@ -9,7 +9,14 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession
 
 from auth import can_write_to_project, get_current_user
-from database import ChecklistItem, Project, ProjectMember, User, get_db_session
+from database import (
+    ChecklistItem,
+    ChecklistItemAssignee,
+    Project,
+    ProjectMember,
+    User,
+    get_db_session,
+)
 
 router = APIRouter(tags=["checklist"])
 
@@ -21,23 +28,20 @@ def _require_user(current_user) -> User:
     return current_user
 
 
-def _validate_assignee(project_id: int, assigned_to: Optional[int], db: DbSession) -> Optional[int]:
-    """Return user id if assignee is a project member, else None."""
-    if not assigned_to:
-        return None
-    membership = (
-        db.query(ProjectMember)
-        .filter_by(project_id=project_id, user_id=assigned_to)
-        .first()
-    )
-    return assigned_to if membership else None
+def _parse_assignee_ids(assigned_to: Optional[List[int]]) -> List[int]:
+    """Normalize form assignee ids to a list of integers."""
+    if assigned_to is None:
+        return []
+    if isinstance(assigned_to, int):
+        return [assigned_to]
+    return [int(uid) for uid in assigned_to]
 
 
 @router.post("/projects/{project_id}/checklist")
 async def add_checklist_item(
     project_id: int,
     text: str = Form(...),
-    assigned_to: Optional[int] = Form(None),
+    assigned_to: Optional[List[int]] = Form(None),
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
@@ -63,10 +67,19 @@ async def add_checklist_item(
         project_id=project_id,
         text=text.strip(),
         created_by=user.id,
-        assigned_to=_validate_assignee(project_id, assigned_to, db),
         position=max_pos + 1,
     )
     db.add(item)
+    db.flush()
+
+    valid_member_ids = {
+        row[0]
+        for row in db.query(ProjectMember.user_id).filter_by(project_id=project_id).all()
+    }
+    for uid in set(_parse_assignee_ids(assigned_to)):
+        if uid in valid_member_ids or user.system_role == "admin":
+            db.add(ChecklistItemAssignee(item_id=item.id, user_id=uid))
+
     db.commit()
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
 
