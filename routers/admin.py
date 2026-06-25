@@ -62,6 +62,7 @@ def _parse_deadline(value: str | None) -> datetime | None:
 async def admin_index(
     request: Request,
     current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    db: DbSession = Depends(get_db_session),
 ):
     """Render admin panel home with section links."""
     if isinstance(current_user, RedirectResponse):
