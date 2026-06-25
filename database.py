@@ -18,7 +18,7 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.orm import Session as OrmSession
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 Base = declarative_base()
 
@@ -102,6 +102,8 @@ class ProjectMember(Base):
     )
     joined_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
+    user = relationship("User")
+
 
 class Note(Base):
     """Project note or update."""
@@ -127,6 +129,19 @@ class Note(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
+
+    author = relationship("User", foreign_keys=[author_id])
+    attachments = relationship(
+        "NoteAttachment",
+        cascade="all, delete-orphan",
+        backref="note",
+    )
+    mentions = relationship(
+        "NoteMention",
+        cascade="all, delete-orphan",
+        backref="note",
+    )
+    project = relationship("Project", backref="notes")
 
 
 class NoteAttachment(Base):
@@ -164,6 +179,8 @@ class NoteMention(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
+
+    user = relationship("User")
 
 
 class Notification(Base):
@@ -211,6 +228,13 @@ class Material(Base):
         nullable=False,
     )
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    author = relationship("User", foreign_keys=[added_by])
+    files = relationship(
+        "MaterialFile",
+        cascade="all, delete-orphan",
+        backref="material",
+    )
 
 
 class MaterialFile(Base):

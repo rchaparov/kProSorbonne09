@@ -1,12 +1,14 @@
 """Authentication routes: login, logout, health check."""
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
 from sqlalchemy.orm import Session as DbSession
 
 from auth import login_user, logout_user
 from database import get_db_session
+from limiter import limiter
 
 router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory="templates")
@@ -15,6 +17,7 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/login")
 async def login_page(request: Request, error: str | None = None):
     """Render the login form."""
+    error = error or request.query_params.get("error")
     return templates.TemplateResponse(
         "login.html",
         {
@@ -27,6 +30,7 @@ async def login_page(request: Request, error: str | None = None):
 
 
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login_post(
     request: Request,
     username: str = Form(...),
@@ -64,6 +68,13 @@ async def logout(
 
 
 @router.get("/health")
-async def health():
-    """Health check endpoint for Railway."""
-    return {"status": "ok"}
+async def health(db: DbSession = Depends(get_db_session)):
+    """Health check endpoint with database connectivity."""
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "db": "ok"}
+    except Exception:
+        return JSONResponse(
+            {"status": "error", "detail": "db unavailable"},
+            status_code=503,
+        )

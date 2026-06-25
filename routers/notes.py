@@ -1,13 +1,15 @@
 """Note and attachment routes."""
 
+from datetime import datetime
 from typing import List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession
 
-from auth import can_write_to_project, get_current_user
+from auth import can_write_to_project, get_current_user, get_unread_count
 from config import settings
 from database import (
     Note,
@@ -20,6 +22,7 @@ from database import (
 )
 
 router = APIRouter(tags=["notes"])
+templates = Jinja2Templates(directory="templates")
 
 INLINE_TYPES = {
     "application/pdf",
@@ -49,6 +52,11 @@ def _require_user(current_user) -> User:
 
 def _can_delete_note(note: Note, user: User) -> bool:
     """Return True if the user may delete the given note."""
+    return user.system_role == "admin" or note.author_id == user.id
+
+
+def _can_edit_note(note: Note, user: User) -> bool:
+    """Return True if the user may edit the given note."""
     return user.system_role == "admin" or note.author_id == user.id
 
 
@@ -110,6 +118,61 @@ async def create_note(
 
     db.commit()
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
+
+
+@router.get("/notes/{note_id}/edit")
+async def edit_note_form(
+    note_id: int,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: DbSession = Depends(get_db_session),
+):
+    """Render the note edit form for author or admin."""
+    user = _require_user(current_user)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    note = db.query(Note).filter_by(id=note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    if not _can_edit_note(note, user):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    project = db.query(Project).filter_by(id=note.project_id).first()
+    return templates.TemplateResponse(
+        "note_edit.html",
+        {
+            "request": request,
+            "current_user": user,
+            "note": note,
+            "project": project,
+            "unread_count": get_unread_count(user, db),
+        },
+    )
+
+
+@router.post("/notes/{note_id}/edit")
+async def edit_note(
+    note_id: int,
+    content: str = Form(...),
+    current_user=Depends(get_current_user),
+    db: DbSession = Depends(get_db_session),
+):
+    """Update note content and redirect to the project page."""
+    user = _require_user(current_user)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    note = db.query(Note).filter_by(id=note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    if not _can_edit_note(note, user):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    note.content = content
+    note.updated_at = datetime.utcnow()
+    db.commit()
+    return RedirectResponse(f"/projects/{note.project_id}", status_code=303)
 
 
 @router.post("/notes/{note_id}/delete")

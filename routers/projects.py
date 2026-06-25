@@ -6,10 +6,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session as DbSession
+from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import can_write_to_project, get_current_user, get_unread_count
-from database import Note, NoteAttachment, NoteMention, Project, ProjectMember, User, get_db_session
+from database import Note, NoteMention, Project, ProjectMember, get_db_session
 
 router = APIRouter(tags=["projects"])
 templates = Jinja2Templates(directory="templates")
@@ -33,34 +33,33 @@ async def project_detail(
     notes = (
         db.query(Note)
         .filter_by(project_id=project_id)
+        .options(
+            joinedload(Note.author),
+            joinedload(Note.attachments),
+            joinedload(Note.mentions).joinedload(NoteMention.user),
+        )
         .order_by(Note.created_at.desc())
         .all()
     )
     note_items = []
     for note in notes:
-        author = db.query(User).filter_by(id=note.author_id).first()
-        attachments = db.query(NoteAttachment).filter_by(note_id=note.id).all()
-        mention_rows = db.query(NoteMention).filter_by(note_id=note.id).all()
-        mentioned_users = []
-        for mention in mention_rows:
-            mentioned = db.query(User).filter_by(id=mention.user_id).first()
-            if mentioned:
-                mentioned_users.append(mentioned)
+        mentioned_users = [mention.user for mention in note.mentions if mention.user]
         note_items.append(
             {
                 "note": note,
-                "author": author,
-                "attachments": attachments,
+                "author": note.author,
+                "attachments": note.attachments,
                 "mentions": mentioned_users,
             }
         )
 
-    memberships = db.query(ProjectMember).filter_by(project_id=project_id).all()
-    members = []
-    for membership in memberships:
-        user = db.query(User).filter_by(id=membership.user_id).first()
-        if user:
-            members.append(user)
+    memberships = (
+        db.query(ProjectMember)
+        .filter_by(project_id=project_id)
+        .options(joinedload(ProjectMember.user))
+        .all()
+    )
+    members = [membership.user for membership in memberships if membership.user]
 
     can_write = can_write_to_project(project_id, current_user, db)
 

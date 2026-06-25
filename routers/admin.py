@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
-from sqlalchemy.orm import Session as DbSession
+from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_unread_count, hash_password, require_admin
 from database import Project, ProjectMember, User, get_db_session
@@ -376,13 +376,18 @@ async def admin_project_members(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    memberships = db.query(ProjectMember).filter_by(project_id=project_id).all()
+    memberships = (
+        db.query(ProjectMember)
+        .filter_by(project_id=project_id)
+        .options(joinedload(ProjectMember.user))
+        .all()
+    )
     member_ids = {membership.user_id for membership in memberships}
-    members = []
-    for membership in memberships:
-        user = db.query(User).filter_by(id=membership.user_id).first()
-        if user:
-            members.append({"user": user, "membership": membership})
+    members = [
+        {"user": membership.user, "membership": membership}
+        for membership in memberships
+        if membership.user
+    ]
 
     query = db.query(User).filter(User.is_active.is_(True))
     if member_ids:

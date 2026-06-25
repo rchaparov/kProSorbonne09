@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск — K-PRO Sorbonne 09 TeamSpace{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Поиск</h1>
+    <form action="/search" method="get" class="mt-4 max-w-xl">
+        <input
+            type="search"
+            name="q"
+            value="{{ q }}"
+            placeholder="Поиск по проектам, заметкам, материалам..."
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+        >
+    </form>
+</div>
+
+{% if q and q|length < 2 %}
+<div class="bg-white shadow rounded-lg p-6 text-sm text-gray-600">
+    Введите минимум 2 символа для поиска.
+</div>
+{% elif q %}
+    {% if results.projects or results.notes or results.materials %}
+        {% if results.projects %}
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Проекты</h2>
+            <div class="bg-white shadow rounded-lg divide-y divide-gray-200">
+                {% for project in results.projects %}
+                <a href="/projects/{{ project.id }}" class="block px-6 py-4 hover:bg-gray-50">
+                    <p class="text-sm font-medium text-gray-900">{{ project.title }}</p>
+                    {% if project.description %}
+                    <p class="mt-1 text-sm text-gray-600 truncate">{{ project.description }}</p>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if results.notes %}
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Заметки</h2>
+            <div class="bg-white shadow rounded-lg divide-y divide-gray-200">
+                {% for note in results.notes %}
+                <a href="/projects/{{ note.project_id }}" class="block px-6 py-4 hover:bg-gray-50">
+                    <p class="text-sm text-gray-700 line-clamp-2">{{ note.content }}</p>
+                    <p class="mt-1 text-xs text-gray-500">
+                        {% if note.project %}{{ note.project.title }} · {% endif %}
+                        {% if note.author %}{{ note.author.full_name }}{% endif %}
+                    </p>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if results.materials %}
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Материалы</h2>
+            <div class="bg-white shadow rounded-lg divide-y divide-gray-200">
+                {% for material in results.materials %}
+                <div class="px-6 py-4">
+                    <p class="text-sm font-medium text-gray-900">{{ material.title }}</p>
+                    {% if material.description %}
+                    <p class="mt-1 text-sm text-gray-600 line-clamp-2">{{ material.description }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">{{ material.category }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    {% else %}
+    <div class="bg-white shadow rounded-lg p-6 text-sm text-gray-600">
+        Ничего не найдено по запросу «{{ q }}».
+    </div>
+    {% endif %}
+{% else %}
+<div class="bg-white shadow rounded-lg p-6 text-sm text-gray-600">
+    Введите запрос для поиска по проектам, заметкам и материалам.
+</div>
+{% endif %}
+{% endblock %}

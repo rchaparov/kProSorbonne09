@@ -57,6 +57,33 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-4 flex-shrink-0">
+                    <div id="search-wrap" class="relative flex items-center">
+                        <button
+                            type="button"
+                            id="search-toggle"
+                            class="inline-flex items-center p-2 text-gray-600 hover:text-indigo-600"
+                            title="Поиск"
+                            aria-label="Поиск"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                            </svg>
+                        </button>
+                        <form
+                            id="search-form"
+                            action="/search"
+                            method="get"
+                            class="hidden absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[220px] sm:min-w-[280px]"
+                        >
+                            <input
+                                type="search"
+                                name="q"
+                                id="search-input"
+                                placeholder="Поиск..."
+                                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                            >
+                        </form>
+                    </div>
                     <a href="/notifications" class="relative inline-flex items-center p-2 text-gray-600 hover:text-indigo-600" title="Уведомления">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
@@ -147,6 +174,27 @@
         document.addEventListener('click', function(e) {
             if (!btn.contains(e.target) && !menu.contains(e.target)) {
                 closeMenu();
+            }
+        });
+    })();
+
+    (function() {
+        const toggle = document.getElementById('search-toggle');
+        const form = document.getElementById('search-form');
+        const input = document.getElementById('search-input');
+        if (!toggle || !form || !input) return;
+
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                input.focus();
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!form.contains(e.target) && e.target !== toggle) {
+                form.classList.add('hidden');
             }
         });
     })();

@@ -6,7 +6,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session as DbSession
+from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_current_user, get_unread_count
 from config import settings
@@ -46,14 +46,16 @@ def _can_delete_material(material: Material, user: User) -> bool:
     return user.system_role == "admin" or material.added_by == user.id
 
 
-def _load_material_items(materials: list[Material], db: DbSession) -> list[dict]:
+def _load_material_items(materials: list[Material]) -> list[dict]:
     """Attach author and files to each material."""
-    items = []
-    for material in materials:
-        author = db.query(User).filter_by(id=material.added_by).first()
-        files = db.query(MaterialFile).filter_by(material_id=material.id).all()
-        items.append({"material": material, "author": author, "files": files})
-    return items
+    return [
+        {
+            "material": material,
+            "author": material.author,
+            "files": material.files,
+        }
+        for material in materials
+    ]
 
 
 @router.get("/materials")
@@ -68,12 +70,16 @@ async def materials_list(
     if isinstance(user, RedirectResponse):
         return user
 
-    query = db.query(Material).order_by(Material.created_at.desc())
+    query = (
+        db.query(Material)
+        .options(joinedload(Material.author), joinedload(Material.files))
+        .order_by(Material.created_at.desc())
+    )
     active_category = category if category in MATERIAL_CATEGORIES else None
     if active_category:
         query = query.filter_by(category=active_category)
 
-    material_items = _load_material_items(query.all(), db)
+    material_items = _load_material_items(query.all())
     grouped: dict[str, list[dict]] = {cat: [] for cat in MATERIAL_CATEGORIES}
     for item in material_items:
         cat = item["material"].category
