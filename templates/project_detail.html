@@ -14,11 +14,11 @@
         {% if project.deadline %}
             {% if project.deadline < now %}
             <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                Просрочен: {{ project.deadline.strftime('%d.%m.%Y') }}
+                Просрочен: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
             </span>
             {% else %}
             <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                Дедлайн: {{ project.deadline.strftime('%d.%m.%Y') }}
+                Дедлайн: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
             </span>
             {% endif %}
         {% endif %}
@@ -34,7 +34,7 @@
         {% endif %}
 
         <span class="text-sm text-gray-500">
-            Создан: {{ project.created_at.strftime('%d.%m.%Y') }}
+            Создан: <time data-utc="{{ project.created_at.isoformat() }}">{{ project.created_at.strftime('%d.%m.%Y') }}</time>
         </span>
     </div>
 </div>
@@ -129,10 +129,10 @@
                             <div class="flex items-center justify-between gap-2 mb-2">
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-medium text-gray-900">{{ item.author.full_name }}</span>
-                                    <span class="text-xs text-gray-500">{{ item.note.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                                    <span class="text-xs text-gray-500"><time data-utc="{{ item.note.created_at.isoformat() }}" data-timeago>{{ item.note.created_at.strftime('%d.%m.%Y %H:%M') }}</time></span>
                                 </div>
                                 {% if current_user.system_role == 'admin' or current_user.id == item.note.author_id %}
-                                <form action="/notes/{{ item.note.id }}/delete" method="post">
+                                <form action="/notes/{{ item.note.id }}/delete" method="post" data-confirm="Удалить заметку?">
                                     <button
                                         type="submit"
                                         class="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-800"
@@ -185,7 +185,7 @@
                                         </a>
                                     </div>
                                     {% if current_user.system_role == 'admin' or current_user.id == item.note.author_id %}
-                                    <form action="/attachments/{{ attachment.id }}/delete" method="post">
+                                    <form action="/attachments/{{ attachment.id }}/delete" method="post" data-confirm="Удалить файл?">
                                         <button
                                             type="submit"
                                             class="inline-flex items-center text-red-600 hover:text-red-800"

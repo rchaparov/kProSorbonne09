@@ -27,7 +27,7 @@
                 class="w-full text-left px-6 py-4 hover:bg-gray-50 transition-colors {% if not notification.is_read %}bg-indigo-50/40{% endif %}"
             >
                 <p class="text-sm text-gray-900">{{ notification.message }}</p>
-                <p class="text-xs text-gray-500 mt-1">{{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+                <p class="text-xs text-gray-500 mt-1"><time data-utc="{{ notification.created_at.isoformat() }}" data-timeago>{{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}</time></p>
             </button>
         </form>
         {% endfor %}

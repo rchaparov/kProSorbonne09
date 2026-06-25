@@ -37,11 +37,11 @@
             {% if project.deadline %}
                 {% if project.deadline < now %}
                 <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                    Просрочен: {{ project.deadline.strftime('%d.%m.%Y') }}
+                    Просрочен: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
                 </span>
                 {% else %}
                 <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                    Дедлайн: {{ project.deadline.strftime('%d.%m.%Y') }}
+                    Дедлайн: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
                 </span>
                 {% endif %}
             {% endif %}
