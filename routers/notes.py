@@ -12,8 +12,10 @@ from sqlalchemy.orm import Session as DbSession
 from auth import can_write_to_project, get_current_user, get_unread_count
 from config import settings
 from database import (
+    Material,
     Note,
     NoteAttachment,
+    NoteMaterialLink,
     NoteMention,
     Notification,
     Project,
@@ -65,6 +67,7 @@ async def create_note(
     project_id: int,
     content: str = Form(...),
     mentions: List[int] = Form(default=[]),
+    material_ids: List[int] = Form(default=[]),
     file: Optional[UploadFile] = File(default=None),
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
@@ -115,6 +118,10 @@ async def create_note(
                 message=f"{user.full_name} упомянул вас в проекте «{project.title}»",
             )
         )
+
+    for material_id in set(material_ids):
+        if db.query(Material).filter_by(id=material_id).first():
+            db.add(NoteMaterialLink(note_id=note.id, material_id=material_id))
 
     db.commit()
     return RedirectResponse(f"/projects/{project_id}", status_code=303)

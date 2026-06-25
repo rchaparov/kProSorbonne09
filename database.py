@@ -105,6 +105,42 @@ class ProjectMember(Base):
     user = relationship("User")
 
 
+class ChecklistItem(Base):
+    """Project checklist task item."""
+
+    __tablename__ = "checklist_items"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(
+        Integer,
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    text = Column(String(1000), nullable=False)
+    is_done = Column(Boolean, nullable=False, default=False)
+    created_by = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    assigned_to = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    position = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    assigned_user = relationship("User", foreign_keys=[assigned_to])
+    creator = relationship("User", foreign_keys=[created_by])
+
+
 class Note(Base):
     """Project note or update."""
 
@@ -142,6 +178,11 @@ class Note(Base):
         backref="note",
     )
     project = relationship("Project", backref="notes")
+    material_links = relationship(
+        "NoteMaterialLink",
+        cascade="all, delete-orphan",
+        backref="note",
+    )
 
 
 class NoteAttachment(Base):
@@ -181,6 +222,29 @@ class NoteMention(Base):
     )
 
     user = relationship("User")
+
+
+class NoteMaterialLink(Base):
+    """Link between a note and a knowledge base material."""
+
+    __tablename__ = "note_material_links"
+    __table_args__ = (
+        UniqueConstraint("note_id", "material_id", name="uq_note_material_links_note_material"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    note_id = Column(
+        Integer,
+        ForeignKey("notes.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    material_id = Column(
+        Integer,
+        ForeignKey("materials.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    material = relationship("Material")
 
 
 class Notification(Base):

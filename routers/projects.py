@@ -9,7 +9,16 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import can_write_to_project, get_current_user, get_unread_count
-from database import Note, NoteMention, Project, ProjectMember, get_db_session
+from database import (
+    ChecklistItem,
+    Material,
+    Note,
+    NoteMaterialLink,
+    NoteMention,
+    Project,
+    ProjectMember,
+    get_db_session,
+)
 
 router = APIRouter(tags=["projects"])
 templates = Jinja2Templates(directory="templates")
@@ -37,6 +46,7 @@ async def project_detail(
             joinedload(Note.author),
             joinedload(Note.attachments),
             joinedload(Note.mentions).joinedload(NoteMention.user),
+            joinedload(Note.material_links).joinedload(NoteMaterialLink.material),
         )
         .order_by(Note.created_at.desc())
         .all()
@@ -44,12 +54,16 @@ async def project_detail(
     note_items = []
     for note in notes:
         mentioned_users = [mention.user for mention in note.mentions if mention.user]
+        linked_materials = [
+            link.material for link in note.material_links if link.material
+        ]
         note_items.append(
             {
                 "note": note,
                 "author": note.author,
                 "attachments": note.attachments,
                 "mentions": mentioned_users,
+                "linked_materials": linked_materials,
             }
         )
 
@@ -60,6 +74,22 @@ async def project_detail(
         .all()
     )
     members = [membership.user for membership in memberships if membership.user]
+
+    checklist_items = (
+        db.query(ChecklistItem)
+        .filter_by(project_id=project_id)
+        .options(joinedload(ChecklistItem.assigned_user))
+        .order_by(ChecklistItem.position)
+        .all()
+    )
+    checklist_total = len(checklist_items)
+    checklist_done = sum(1 for item in checklist_items if item.is_done)
+
+    all_materials = (
+        db.query(Material)
+        .order_by(Material.category, Material.title)
+        .all()
+    )
 
     can_write = can_write_to_project(project_id, current_user, db)
 
@@ -77,6 +107,10 @@ async def project_detail(
             "note_items": note_items,
             "members": members,
             "members_json": members_json,
+            "checklist_items": checklist_items,
+            "checklist_total": checklist_total,
+            "checklist_done": checklist_done,
+            "all_materials": all_materials,
             "can_write": can_write,
             "now": datetime.utcnow(),
             "unread_count": get_unread_count(current_user, db),

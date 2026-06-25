@@ -13,6 +13,7 @@ from database import Session as UserSession, SessionLocal, init_database
 from limiter import limiter
 from routers.admin import router as admin_router
 from routers.auth_router import router as auth_router
+from routers.checklist import router as checklist_router
 from routers.dashboard import router as dashboard_router
 from routers.materials import router as materials_router
 from routers.notes import router as notes_router
@@ -32,6 +33,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(projects_router)
+app.include_router(checklist_router)
 app.include_router(notes_router)
 app.include_router(admin_router)
 app.include_router(profile_router)
