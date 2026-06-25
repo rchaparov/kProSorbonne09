@@ -210,6 +210,10 @@
 
         <div>
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Заметки</h2>
+            <div id="new-notes-banner"
+                 class="hidden cursor-pointer mb-4 rounded-md bg-indigo-50 border border-indigo-200 px-4 py-3 text-sm text-indigo-700 text-center hover:bg-indigo-100 transition-colors">
+            </div>
+            <div id="notes-feed" data-project-id="{{ project.id }}" data-last-seen="{{ last_seen_at }}" data-page="{{ page }}">
             {% if note_items %}
             <div class="space-y-4">
                 {% for item in note_items %}
@@ -458,6 +462,7 @@
                 Заметок пока нет.
             </div>
             {% endif %}
+            </div>
         </div>
     </div>
 </div>
@@ -736,7 +741,72 @@ function quoteNote(noteId, authorName, noteText) {
             hideDropdown();
         }
     });
+
+    form.addEventListener('submit', function() {
+        form.querySelectorAll('input[name="mentions"]').forEach(function(el) { el.remove(); });
+        if (selectedIds.size > 0) {
+            selectedIds.forEach(function(id) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'mentions';
+                input.value = id;
+                form.appendChild(input);
+            });
+        }
+    });
 })();
 </script>
 {% endif %}
+<script>
+(function() {
+    const feed = document.getElementById('notes-feed');
+    if (!feed) return;
+    const projectId = feed.dataset.projectId;
+    const currentPage = parseInt(feed.dataset.page || '1', 10);
+    if (currentPage !== 1) return;
+
+    let lastSeenAt = feed.dataset.lastSeen;
+    let pendingCount = 0;
+    const banner = document.getElementById('new-notes-banner');
+
+    async function pollNotes() {
+        if (document.visibilityState === 'hidden') return;
+        try {
+            const resp = await fetch(
+                '/projects/' + projectId + '/notes/feed?after=' + encodeURIComponent(lastSeenAt) + '&page=' + currentPage
+            );
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (data.count > 0) {
+                pendingCount += data.count;
+                if (data.latest_at) {
+                    lastSeenAt = data.latest_at;
+                } else if (data.notes && data.notes.length > 0) {
+                    lastSeenAt = data.notes[0].created_at;
+                }
+                if (banner) {
+                    banner.textContent = 'Новые заметки (' + pendingCount + ') — нажмите чтобы обновить';
+                    banner.classList.remove('hidden');
+                }
+            }
+        } catch (e) {
+            // сеть недоступна — молча пропускаем
+        }
+    }
+
+    setInterval(pollNotes, 20000);
+
+    if (banner) {
+        banner.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            pollNotes();
+        }
+    });
+})();
+</script>
 {% endblock %}

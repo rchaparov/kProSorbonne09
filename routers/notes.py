@@ -1,5 +1,6 @@
 """Note and attachment routes."""
 
+import sys
 from datetime import datetime
 from typing import List, Optional
 from urllib.parse import quote
@@ -83,7 +84,7 @@ async def create_note(
     content: str = Form(...),
     parent_id: Optional[int] = Form(None),
     quoted_content: Optional[str] = Form(None),
-    mentions: List[int] = Form(default=[]),
+    mentions: Optional[List[int]] = Form(None),
     material_ids: List[int] = Form(default=[]),
     file: Optional[UploadFile] = File(default=None),
     current_user=Depends(get_current_user),
@@ -120,6 +121,19 @@ async def create_note(
     db.add(note)
     db.flush()
 
+    mention_ids: List[int] = []
+    if mentions is not None:
+        if isinstance(mentions, int):
+            mention_ids = [mentions]
+        else:
+            mention_ids = [int(m) for m in mentions]
+
+    print(
+        f"[DEBUG] create_note mentions={mention_ids} content_len={len(content)}",
+        file=sys.stderr,
+        flush=True,
+    )
+
     if file and file.filename:
         file_bytes = await file.read()
         if len(file_bytes) > settings.MAX_UPLOAD_BYTES:
@@ -138,7 +152,7 @@ async def create_note(
             )
         )
 
-    for user_id in mentions:
+    for user_id in mention_ids:
         if user_id == user.id:
             continue
         db.add(NoteMention(note_id=note.id, user_id=user_id))

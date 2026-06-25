@@ -136,6 +136,18 @@ async def project_detail(
         ensure_ascii=False,
     )
 
+    latest_note = (
+        db.query(Note)
+        .filter_by(project_id=project_id)
+        .order_by(Note.created_at.desc())
+        .first()
+    )
+    last_seen_at = (
+        latest_note.created_at.isoformat()
+        if latest_note
+        else datetime.utcnow().isoformat()
+    )
+
     return templates.TemplateResponse(
         "project_detail.html",
         {
@@ -159,5 +171,6 @@ async def project_detail(
             "notes_from": notes_from,
             "notes_to": notes_to,
             "page_size": PAGE_SIZE,
+            "last_seen_at": last_seen_at,
         },
     )
