@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import can_write_to_project, get_current_user, get_unread_count
+from config import settings
 from database import (
     ChecklistItem,
     Material,
@@ -112,6 +113,7 @@ async def project_detail(
             "checklist_done": checklist_done,
             "all_materials": all_materials,
             "can_write": can_write,
+            "office_viewer_enabled": bool(settings.BASE_URL),
             "now": datetime.utcnow(),
             "unread_count": get_unread_count(current_user, db),
         },

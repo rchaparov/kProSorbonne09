@@ -3,18 +3,19 @@
 from datetime import datetime
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi.errors import RateLimitExceeded
 
 from config import settings, validate_settings
-from database import Session as UserSession, SessionLocal, init_database
+from database import Session as UserSession, SessionLocal, TempFileToken, init_database
 from limiter import limiter
 from routers.admin import router as admin_router
 from routers.auth_router import router as auth_router
 from routers.checklist import router as checklist_router
 from routers.dashboard import router as dashboard_router
+from routers.files_temp import router as files_temp_router
 from routers.materials import router as materials_router
 from routers.notes import router as notes_router
 from routers.notifications import router as notifications_router
@@ -40,6 +41,7 @@ app.include_router(profile_router)
 app.include_router(notifications_router)
 app.include_router(materials_router)
 app.include_router(search_router)
+app.include_router(files_temp_router)
 
 
 @app.exception_handler(RateLimitExceeded)
@@ -71,15 +73,24 @@ async def startup() -> None:
             .filter(UserSession.expires_at < datetime.utcnow())
             .delete()
         )
+        tokens_deleted = (
+            db.query(TempFileToken)
+            .filter(TempFileToken.expires_at < datetime.utcnow())
+            .delete()
+        )
         db.commit()
         print(f"Cleaned {deleted} expired sessions")
+        print(f"Cleaned {tokens_deleted} expired temp file tokens")
     finally:
         db.close()
 
 
 @app.exception_handler(404)
-async def not_found(request: Request, exc: Exception) -> RedirectResponse:
-    """Redirect unknown pages to home."""
+async def not_found(request: Request, exc: Exception):
+    """Redirect unknown pages to home; return JSON for file token API."""
+    if request.url.path.startswith("/files/"):
+        detail = getattr(exc, "detail", "Not found")
+        return JSONResponse({"detail": detail}, status_code=404)
     return RedirectResponse("/")
 
 

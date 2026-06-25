@@ -320,6 +320,19 @@ class MaterialFile(Base):
     uploaded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
+class TempFileToken(Base):
+    """Short-lived public token for Office Online Viewer file access."""
+
+    __tablename__ = "temp_file_tokens"
+
+    id = Column(Integer, primary_key=True)
+    token = Column(String(36), unique=True, index=True, nullable=False)
+    file_type = Column(String(20), nullable=False)
+    file_id = Column(Integer, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 def init_database(database_url: str) -> None:
     """Initialize SQLAlchemy engine and session factory."""
     global _engine, SessionLocal

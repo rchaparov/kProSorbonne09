@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_current_user, get_unread_count
 from config import settings
+from config import settings
 from database import MATERIAL_CATEGORIES, Material, MaterialFile, User, get_db_session
 
 router = APIRouter(tags=["materials"])
@@ -112,6 +113,7 @@ async def materials_list(
             "material_items": material_items,
             "msg": request.query_params.get("msg"),
             "unread_count": get_unread_count(user, db),
+            "office_viewer_enabled": bool(settings.BASE_URL),
         },
     )
 

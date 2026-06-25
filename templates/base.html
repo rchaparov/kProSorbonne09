@@ -131,6 +131,21 @@
         }
     });
 
+    async function openOfficeViewer(fileType, fileId) {
+        try {
+            const resp = await fetch('/files/temp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({file_type: fileType, file_id: fileId})
+            });
+            if (!resp.ok) throw new Error('Server error');
+            const data = await resp.json();
+            window.open(data.viewer_url, '_blank', 'noopener,noreferrer');
+        } catch (e) {
+            alert('Не удалось открыть просмотрщик. Попробуйте скачать файл.');
+        }
+    }
+
     function timeAgo(isoString) {
         const date = new Date(isoString + 'Z');
         const now = new Date();

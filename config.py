@@ -13,6 +13,14 @@ class Settings(BaseSettings):
     SESSION_LIFETIME_HOURS: int = 8
     MAX_UPLOAD_BYTES: int = 10485760
     PORT: int = 8000
+    BASE_URL: str = ""
+
+    @validator("BASE_URL", pre=True)
+    def normalize_base_url(cls, value: str) -> str:
+        """Strip trailing slash from public base URL."""
+        if value:
+            return value.rstrip("/")
+        return value or ""
 
     @validator("DATABASE_URL", pre=True)
     def normalize_database_url(cls, value: str) -> str:
