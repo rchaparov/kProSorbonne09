@@ -27,6 +27,9 @@ def serve_file_for_view(
     if not isinstance(file_data, bytes):
         file_data = bytes(file_data)
 
+    content_type = content_type or ""
+    original_filename = original_filename or "file"
+
     ext = (
         ("." + original_filename.rsplit(".", 1)[-1].lower())
         if "." in original_filename

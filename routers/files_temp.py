@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session as DbSession
 from auth import get_current_user
 from config import settings
 from database import MaterialFile, NoteAttachment, TempFileToken, User, get_db_session
-from utils.file_viewer import serve_file_for_view
 
 router = APIRouter(tags=["files_temp"])
 
@@ -102,8 +101,13 @@ async def serve_temp_file(token: str, db: DbSession = Depends(get_db_session)):
     if not file_obj:
         raise HTTPException(status_code=404, detail="File not found")
 
-    return serve_file_for_view(
-        _file_bytes(file_obj.file_data),
-        file_obj.content_type,
-        file_obj.original_filename,
+    return Response(
+        content=_file_bytes(file_obj.file_data),
+        media_type=file_obj.content_type or "application/octet-stream",
+        headers={
+            "Content-Disposition": _content_disposition_header(
+                "inline", file_obj.original_filename or "file"
+            ),
+            "Cache-Control": "no-store",
+        },
     )
