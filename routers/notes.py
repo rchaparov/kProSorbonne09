@@ -81,6 +81,8 @@ def _can_edit_note(note: Note, user: User) -> bool:
 async def create_note(
     project_id: int,
     content: str = Form(...),
+    parent_id: Optional[int] = Form(None),
+    quoted_content: Optional[str] = Form(None),
     mentions: List[int] = Form(default=[]),
     material_ids: List[int] = Form(default=[]),
     file: Optional[UploadFile] = File(default=None),
@@ -99,7 +101,22 @@ async def create_note(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    note = Note(project_id=project_id, author_id=user.id, content=content)
+    validated_parent_id = None
+    if parent_id:
+        parent = db.query(Note).filter_by(id=parent_id, project_id=project_id).first()
+        if parent:
+            if parent.parent_id is not None:
+                validated_parent_id = parent.parent_id
+            else:
+                validated_parent_id = parent_id
+
+    note = Note(
+        project_id=project_id,
+        author_id=user.id,
+        content=content,
+        parent_id=validated_parent_id,
+        quoted_content=quoted_content[:300] if quoted_content else None,
+    )
     db.add(note)
     db.flush()
 

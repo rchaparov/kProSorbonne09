@@ -158,6 +158,12 @@ class Note(Base):
         nullable=False,
     )
     content = Column(Text, nullable=False)
+    parent_id = Column(
+        Integer,
+        ForeignKey("notes.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    quoted_content = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
         DateTime,

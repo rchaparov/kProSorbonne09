@@ -1,11 +1,13 @@
 """Project detail routes."""
 
 import json
+from collections import defaultdict
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import can_write_to_project, get_current_user, get_unread_count
@@ -24,6 +26,8 @@ from database import (
 router = APIRouter(tags=["projects"])
 templates = Jinja2Templates(directory="templates")
 
+PAGE_SIZE = 20
+
 
 @router.get("/projects/{project_id}")
 async def project_detail(
@@ -40,9 +44,18 @@ async def project_detail(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    notes = (
+    page = max(1, int(request.query_params.get("page", 1)))
+    offset = (page - 1) * PAGE_SIZE
+
+    total_roots = (
+        db.query(func.count(Note.id))
+        .filter_by(project_id=project_id, parent_id=None)
+        .scalar()
+    ) or 0
+
+    root_notes = (
         db.query(Note)
-        .filter_by(project_id=project_id)
+        .filter_by(project_id=project_id, parent_id=None)
         .options(
             joinedload(Note.author),
             joinedload(Note.attachments),
@@ -50,10 +63,29 @@ async def project_detail(
             joinedload(Note.material_links).joinedload(NoteMaterialLink.material),
         )
         .order_by(Note.created_at.desc())
+        .offset(offset)
+        .limit(PAGE_SIZE)
         .all()
     )
+
+    root_ids = [note.id for note in root_notes]
+    if root_ids:
+        replies = (
+            db.query(Note)
+            .options(joinedload(Note.author))
+            .filter(Note.parent_id.in_(root_ids))
+            .order_by(Note.created_at.asc())
+            .all()
+        )
+    else:
+        replies = []
+
+    replies_by_parent: dict = defaultdict(list)
+    for reply in replies:
+        replies_by_parent[reply.parent_id].append(reply)
+
     note_items = []
-    for note in notes:
+    for note in root_notes:
         mentioned_users = [mention.user for mention in note.mentions if mention.user]
         linked_materials = [
             link.material for link in note.material_links if link.material
@@ -65,8 +97,13 @@ async def project_detail(
                 "attachments": note.attachments,
                 "mentions": mentioned_users,
                 "linked_materials": linked_materials,
+                "replies": replies_by_parent.get(note.id, []),
             }
         )
+
+    total_pages = (total_roots + PAGE_SIZE - 1) // PAGE_SIZE if total_roots else 1
+    notes_from = offset + 1 if total_roots else 0
+    notes_to = min(page * PAGE_SIZE, total_roots)
 
     memberships = (
         db.query(ProjectMember)
@@ -116,5 +153,11 @@ async def project_detail(
             "office_viewer_enabled": bool(settings.BASE_URL),
             "now": datetime.utcnow(),
             "unread_count": get_unread_count(current_user, db),
+            "page": page,
+            "total_pages": total_pages,
+            "total_roots": total_roots,
+            "notes_from": notes_from,
+            "notes_to": notes_to,
+            "page_size": PAGE_SIZE,
         },
     )
