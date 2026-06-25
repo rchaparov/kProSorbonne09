@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 from auth import get_current_user, get_unread_count
 from config import settings
 from database import MATERIAL_CATEGORIES, Material, MaterialFile, User, get_db_session
+from utils.file_viewer import serve_file_for_view
 
 router = APIRouter(tags=["materials"])
 templates = Jinja2Templates(directory="templates")
@@ -262,13 +263,8 @@ async def material_file_view(
     if not material_file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    disposition = _file_disposition(material_file.content_type)
-    return Response(
-        content=_file_bytes(material_file.file_data),
-        media_type=material_file.content_type,
-        headers={
-            "Content-Disposition": _content_disposition_header(
-                disposition, material_file.original_filename
-            ),
-        },
+    return serve_file_for_view(
+        _file_bytes(material_file.file_data),
+        material_file.content_type,
+        material_file.original_filename,
     )

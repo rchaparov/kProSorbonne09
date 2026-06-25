@@ -11,3 +11,4 @@ pydantic==1.10.*
 python-dotenv
 aiofiles
 slowapi
+markdown==3.6

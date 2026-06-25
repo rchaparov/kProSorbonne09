@@ -25,6 +25,8 @@ from database import (
     get_db_session,
 )
 
+from utils.file_viewer import serve_file_for_view
+
 router = APIRouter(tags=["notes"])
 templates = Jinja2Templates(directory="templates")
 
@@ -340,15 +342,10 @@ async def view_attachment(
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
 
-    disposition = _attachment_disposition(attachment.content_type)
-    return Response(
-        content=_attachment_bytes(attachment.file_data),
-        media_type=attachment.content_type,
-        headers={
-            "Content-Disposition": _content_disposition_header(
-                disposition, attachment.original_filename
-            ),
-        },
+    return serve_file_for_view(
+        _attachment_bytes(attachment.file_data),
+        attachment.content_type,
+        attachment.original_filename,
     )
 
 
