@@ -149,13 +149,13 @@
         {% if can_write %}
         <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Добавить заметку</h2>
+            <script id="members-data" type="application/json">{{ members_json | safe }}</script>
             <form
                 id="note-form"
                 action="/projects/{{ project.id }}/notes"
                 method="post"
                 enctype="multipart/form-data"
                 class="space-y-4"
-                data-members="{{ members_json | e }}"
             >
                 <div id="reply-banner" class="hidden flex items-center justify-between gap-2 px-3 py-2 bg-indigo-50 rounded-md text-sm text-indigo-700">
                     <span id="reply-banner-text"></span>
@@ -380,8 +380,9 @@
                             <div class="flex items-center gap-3 mt-2">
                                 <button
                                     type="button"
-                                    onclick="replyTo({{ item.note.id }}, {{ item.author.full_name | tojson }})"
-                                    class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600"
+                                    class="reply-btn inline-flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600"
+                                    data-note-id="{{ item.note.id }}"
+                                    data-author="{{ item.author.full_name | e }}"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 0 1-.375-.375H5.25a2.25 2.25 0 0 1-2.25-2.25V6.75A2.25 2.25 0 0 1 5.25 4.5h11.25A2.25 2.25 0 0 1 18.75 6.75v2.625a2.25 2.25 0 0 1-2.25 2.25H12a.375.375 0 0 1-.375.375v3.375c0 .621.504 1.125 1.125 1.125h.375a1.125 1.125 0 0 0 1.125-1.125V12Z" />
@@ -390,8 +391,10 @@
                                 </button>
                                 <button
                                     type="button"
-                                    onclick="quoteNote({{ item.note.id }}, {{ item.author.full_name | tojson }}, {{ item.note.content | tojson }})"
-                                    class="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600"
+                                    class="quote-btn inline-flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600"
+                                    data-note-id="{{ item.note.id }}"
+                                    data-author="{{ item.author.full_name | e }}"
+                                    data-content="{{ item.note.content | tojson | e }}"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
@@ -514,6 +517,24 @@ function quoteNote(noteId, authorName, noteText) {
     qInput.value = authorName + ': ' + noteText.substring(0, 300);
     form.appendChild(qInput);
 }
+
+document.addEventListener('click', function(e) {
+    const replyBtn = e.target.closest('.reply-btn');
+    if (replyBtn) {
+        replyTo(replyBtn.dataset.noteId, replyBtn.dataset.author);
+        return;
+    }
+    const quoteBtn = e.target.closest('.quote-btn');
+    if (quoteBtn) {
+        let noteText = '';
+        try {
+            noteText = JSON.parse(quoteBtn.dataset.content || '""');
+        } catch (err) {
+            noteText = quoteBtn.dataset.content || '';
+        }
+        quoteNote(quoteBtn.dataset.noteId, quoteBtn.dataset.author, noteText);
+    }
+});
 </script>
 <script>
 (function() {
@@ -521,7 +542,8 @@ function quoteNote(noteId, authorName, noteText) {
     if (!form) return;
 
     const textarea = form.querySelector('textarea[name="content"]');
-    const members = JSON.parse(form.dataset.members || '[]');
+    const membersDataEl = document.getElementById('members-data');
+    const members = JSON.parse(membersDataEl ? membersDataEl.textContent : '[]');
     const allMembers = [{ id: 'all', name: 'all' }].concat(members);
 
     let dropdown = null;
