@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="templates")
 
 def _accessible_project_ids(user: User, db: DbSession) -> list[int] | None:
     """Return project IDs visible to the user, or None for admin (all projects)."""
-    if user.system_role == "admin":
+    if user.system_role in ("admin", "coordinator"):
         return None
     rows = db.query(ProjectMember.project_id).filter_by(user_id=user.id).all()
     return [row[0] for row in rows]
