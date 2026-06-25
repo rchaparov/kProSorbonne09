@@ -1,5 +1,7 @@
 """Application configuration loaded from environment variables."""
 
+import os
+
 from pydantic import BaseSettings, validator
 
 DEFAULT_SECRET_KEY = "change-me-in-production"
@@ -15,12 +17,15 @@ class Settings(BaseSettings):
     PORT: int = 8000
     BASE_URL: str = ""
 
-    @validator("BASE_URL", pre=True)
-    def normalize_base_url(cls, value: str) -> str:
-        """Strip trailing slash from public base URL."""
-        if value:
-            return value.rstrip("/")
-        return value or ""
+    @validator("BASE_URL", pre=True, always=True)
+    def set_base_url(cls, v):
+        """Use BASE_URL env or derive from RAILWAY_PUBLIC_DOMAIN."""
+        if v:
+            return v.rstrip("/")
+        domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+        if domain:
+            return f"https://{domain}"
+        return ""
 
     @validator("DATABASE_URL", pre=True)
     def normalize_database_url(cls, value: str) -> str:
