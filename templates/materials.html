@@ -51,7 +51,7 @@
             {% else %}
             <span class="text-indigo-600 truncate">{{ file.original_filename }}</span>
             {% endif %}
-            {% if office_viewer_enabled and is_office %}
+            {% if is_office %}
             <button
                 type="button"
                 onclick="openOfficeViewer('material_file', {{ file.id }})"

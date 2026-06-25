@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_current_user, get_unread_count
 from config import settings
-from config import settings
 from database import MATERIAL_CATEGORIES, Material, MaterialFile, User, get_db_session
 
 router = APIRouter(tags=["materials"])
