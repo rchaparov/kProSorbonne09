@@ -1,6 +1,7 @@
 """Shared knowledge base materials routes."""
 
 from typing import Optional
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -39,6 +40,20 @@ def _file_disposition(content_type: str) -> str:
     if content_type in INLINE_TYPES:
         return "inline"
     return "attachment"
+
+
+def _content_disposition_header(disposition: str, filename: str) -> str:
+    """Build Content-Disposition header safe for non-ASCII filenames."""
+    fallback = filename.encode("ascii", "replace").decode("ascii").replace("?", "_") or "file"
+    encoded = quote(filename, safe="")
+    return f"{disposition}; filename=\"{fallback}\"; filename*=UTF-8''{encoded}"
+
+
+def _file_bytes(file_data) -> bytes:
+    """Normalize file binary payload to bytes."""
+    if isinstance(file_data, bytes):
+        return file_data
+    return bytes(file_data)
 
 
 def _can_delete_material(material: Material, user: User) -> bool:
@@ -216,10 +231,12 @@ async def material_file_download(
         raise HTTPException(status_code=404, detail="File not found")
 
     return Response(
-        content=material_file.file_data,
+        content=_file_bytes(material_file.file_data),
         media_type=material_file.content_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{material_file.original_filename}"',
+            "Content-Disposition": _content_disposition_header(
+                "attachment", material_file.original_filename
+            ),
         },
     )
 
@@ -246,9 +263,11 @@ async def material_file_view(
 
     disposition = _file_disposition(material_file.content_type)
     return Response(
-        content=material_file.file_data,
+        content=_file_bytes(material_file.file_data),
         media_type=material_file.content_type,
         headers={
-            "Content-Disposition": f'{disposition}; filename="{material_file.original_filename}"',
+            "Content-Disposition": _content_disposition_header(
+                disposition, material_file.original_filename
+            ),
         },
     )

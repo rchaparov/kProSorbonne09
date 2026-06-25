@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from typing import List, Optional
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -43,6 +44,20 @@ def _attachment_disposition(content_type: str) -> str:
     if content_type in INLINE_TYPES:
         return "inline"
     return "attachment"
+
+
+def _content_disposition_header(disposition: str, filename: str) -> str:
+    """Build Content-Disposition header safe for non-ASCII filenames."""
+    fallback = filename.encode("ascii", "replace").decode("ascii").replace("?", "_") or "file"
+    encoded = quote(filename, safe="")
+    return f"{disposition}; filename=\"{fallback}\"; filename*=UTF-8''{encoded}"
+
+
+def _attachment_bytes(file_data) -> bytes:
+    """Normalize attachment binary payload to bytes."""
+    if isinstance(file_data, bytes):
+        return file_data
+    return bytes(file_data)
 
 
 def _require_user(current_user) -> User:
@@ -269,10 +284,12 @@ async def download_attachment(
         raise HTTPException(status_code=404, detail="Attachment not found")
 
     return Response(
-        content=attachment.file_data,
+        content=_attachment_bytes(attachment.file_data),
         media_type=attachment.content_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{attachment.original_filename}"',
+            "Content-Disposition": _content_disposition_header(
+                "attachment", attachment.original_filename
+            ),
         },
     )
 
@@ -294,10 +311,12 @@ async def view_attachment(
 
     disposition = _attachment_disposition(attachment.content_type)
     return Response(
-        content=attachment.file_data,
+        content=_attachment_bytes(attachment.file_data),
         media_type=attachment.content_type,
         headers={
-            "Content-Disposition": f'{disposition}; filename="{attachment.original_filename}"',
+            "Content-Disposition": _content_disposition_header(
+                disposition, attachment.original_filename
+            ),
         },
     )
 
