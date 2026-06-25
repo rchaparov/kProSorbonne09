@@ -37,11 +37,11 @@
             {% if project.deadline %}
                 {% if project.deadline < now %}
                 <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                    Просрочен: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
+                    Просрочен на {{ (now - project.deadline).days }} дн.
                 </span>
                 {% else %}
                 <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                    Дедлайн: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
+                    Осталось {{ (project.deadline - now).days }} дн.
                 </span>
                 {% endif %}
             {% endif %}
@@ -60,6 +60,17 @@
                 {{ member_counts.get(project.id, 0) }} участн.
             </span>
         </div>
+
+        {% set stats = checklist_stats.get(project.id) %}
+        {% if stats and stats.total > 0 %}
+        {% set percent = (stats.done / stats.total * 100)|round|int %}
+        <div class="mt-3">
+            <p class="text-xs text-gray-600 mb-1">{{ stats.done }}/{{ stats.total }} задач</p>
+            <div class="bg-gray-200 rounded-full h-1.5">
+                <div class="bg-indigo-600 h-1.5 rounded-full" style="width: {{ percent }}%"></div>
+            </div>
+        </div>
+        {% endif %}
     </a>
     {% endfor %}
 </div>
