@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count
 from database import Notification, get_db_session
+from utils.nav import nav_context
 
 router = APIRouter(tags=["notifications"])
 templates = Jinja2Templates(directory="templates")
@@ -36,6 +37,7 @@ async def notifications_page(
             "current_user": current_user,
             "notifications": notifications,
             "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db),
         },
     )
 

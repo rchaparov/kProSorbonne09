@@ -18,6 +18,7 @@ from database import (
     User,
     get_db_session,
 )
+from utils.nav import nav_context
 
 router = APIRouter(tags=["checklist"])
 templates = Jinja2Templates(directory="templates")
@@ -145,6 +146,7 @@ async def edit_checklist_item_form(
             "members": members,
             "current_assignee_ids": current_assignee_ids,
             "unread_count": get_unread_count(user, db),
+            **nav_context(user, db, item.project_id),
         },
     )
 

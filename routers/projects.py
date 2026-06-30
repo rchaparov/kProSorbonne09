@@ -28,6 +28,7 @@ from utils.progress import (
     PROJECT_STATUS_LABELS,
     project_progress,
 )
+from utils.nav import nav_context
 
 router = APIRouter(tags=["projects"])
 templates = Jinja2Templates(directory="templates")
@@ -187,5 +188,6 @@ async def project_detail(
             "progress_pct": progress_pct,
             "status_labels": PROJECT_STATUS_LABELS,
             "status_colors": PROJECT_STATUS_COLORS,
+            **nav_context(current_user, db, project_id),
         },
     )

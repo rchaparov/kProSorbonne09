@@ -13,6 +13,7 @@ from auth import get_current_user, get_unread_count
 from config import settings
 from database import MATERIAL_CATEGORIES, Material, MaterialFile, User, get_db_session
 from utils.file_viewer import serve_file_for_view
+from utils.nav import nav_context
 
 router = APIRouter(tags=["materials"])
 templates = Jinja2Templates(directory="templates")
@@ -114,6 +115,7 @@ async def materials_list(
             "msg": request.query_params.get("msg"),
             "unread_count": get_unread_count(user, db),
             "office_viewer_enabled": bool(settings.BASE_URL),
+            **nav_context(user, db),
         },
     )
 
@@ -136,6 +138,7 @@ async def material_new_form(
             "current_user": user,
             "categories": MATERIAL_CATEGORIES,
             "unread_count": get_unread_count(user, db),
+            **nav_context(user, db),
         },
     )
 

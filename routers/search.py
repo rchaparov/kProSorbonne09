@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_current_user, get_unread_count
 from database import Material, Note, Project, ProjectMember, User, get_db_session
+from utils.nav import nav_context
 
 router = APIRouter(tags=["search"])
 templates = Jinja2Templates(directory="templates")
@@ -78,5 +79,6 @@ async def search(
             "q": query,
             "results": results,
             "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db),
         },
     )

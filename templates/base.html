@@ -32,6 +32,26 @@
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center gap-3 min-w-0">
                     <a href="/" class="text-lg font-semibold text-gray-900 truncate">K-PRO Sorbonne 09</a>
+                    <div class="relative" id="projects-dropdown-wrapper">
+                        <button type="button" id="projects-dropdown-btn" class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+                            Проекты
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+                        <div id="projects-dropdown-menu" class="hidden absolute left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                            {% for p in recent_projects|default([]) %}
+                            <a href="/projects/{{ p.id }}"
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 truncate
+                                      {% if current_project_id == p.id %}bg-indigo-50 text-indigo-700 font-medium{% endif %}">
+                                {{ p.title }}
+                            </a>
+                            {% endfor %}
+                            <div class="border-t border-gray-100 mt-1 pt-1">
+                                <a href="/" class="block px-4 py-2 text-sm text-indigo-600 hover:bg-gray-50">Все проекты →</a>
+                            </div>
+                        </div>
+                    </div>
                     <button
                         type="button"
                         id="burger-btn"
@@ -43,7 +63,6 @@
                         </svg>
                     </button>
                     <div id="nav-links" class="hidden md:flex items-center gap-6">
-                        <a href="/" class="text-sm text-gray-600 hover:text-indigo-600">Проекты</a>
                         <a href="/materials" class="text-sm text-gray-600 hover:text-indigo-600">Материалы</a>
                         <a href="/analytics" class="text-sm text-gray-600 hover:text-indigo-600">Аналитика</a>
                         {% if current_user.system_role == "admin" %}
@@ -119,6 +138,7 @@
     {% endif %}
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block breadcrumbs %}{% endblock %}
         {% block content %}{% endblock %}
     </main>
 
@@ -215,6 +235,30 @@
         document.addEventListener('click', function(e) {
             if (!form.contains(e.target) && e.target !== toggle) {
                 form.classList.add('hidden');
+            }
+        });
+    })();
+
+    (function() {
+        const btn = document.getElementById('projects-dropdown-btn');
+        const menu = document.getElementById('projects-dropdown-menu');
+        const wrapper = document.getElementById('projects-dropdown-wrapper');
+        if (!btn || !menu || !wrapper) return;
+
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!wrapper.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                menu.classList.add('hidden');
             }
         });
     })();

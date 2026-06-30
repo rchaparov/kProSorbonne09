@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count, hash_password, verify_password
 from database import User, get_db_session
+from utils.nav import nav_context
 
 router = APIRouter(tags=["profile"])
 templates = Jinja2Templates(directory="templates")
@@ -30,6 +31,7 @@ async def profile_page(
             "msg": request.query_params.get("msg"),
             "error": request.query_params.get("error"),
             "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db),
         },
     )
 

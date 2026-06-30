@@ -2,10 +2,19 @@
 
 {% block title %}Редактировать пункт — K-PRO Sorbonne 09 TeamSpace{% endblock %}
 
+{% block breadcrumbs %}
+<nav class="text-sm text-gray-500 mb-4" aria-label="Навигация">
+    <a href="/" class="hover:text-gray-700">Главная</a>
+    <span class="mx-1">/</span>
+    <a href="/projects/{{ project.id }}" class="hover:text-gray-700">{{ project.title }}</a>
+    <span class="mx-1">/</span>
+    <span class="text-gray-900 font-medium">Редактирование пункта</span>
+</nav>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <a href="/projects/{{ project.id }}" class="text-sm text-indigo-600 hover:text-indigo-800">← {{ project.title }}</a>
-    <h1 class="text-2xl font-bold text-gray-900 mt-4 mb-6">Редактировать пункт чеклиста</h1>
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">Редактировать пункт чеклиста</h1>
 
     <div class="bg-white shadow rounded-lg p-6">
         <form action="/checklist/{{ item.id }}/edit" method="post" class="space-y-4">

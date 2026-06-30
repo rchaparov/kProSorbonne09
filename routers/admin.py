@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_unread_count, hash_password, require_admin
 from database import Project, ProjectMember, User, get_db_session
+from utils.nav import nav_context
 from utils.progress import PROJECT_STATUSES, PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -23,12 +24,15 @@ def _template_context(
     request: Request,
     current_user: User,
     db: DbSession | None = None,
+    current_project_id: int | None = None,
     **extra,
 ) -> dict:
     """Build common template context for admin pages."""
     unread_count = 0
+    nav = {"recent_projects": [], "current_project_id": current_project_id}
     if db is not None:
         unread_count = get_unread_count(current_user, db)
+        nav = nav_context(current_user, db, current_project_id)
     return {
         "request": request,
         "current_user": current_user,
@@ -37,6 +41,7 @@ def _template_context(
         "unread_count": unread_count,
         "status_labels": PROJECT_STATUS_LABELS,
         "status_colors": PROJECT_STATUS_COLORS,
+        **nav,
         **extra,
     }
 
@@ -310,6 +315,7 @@ async def admin_projects_edit_form(
             request,
             current_user,
             db=db,
+            current_project_id=project_id,
             project=project,
             form_action=f"/admin/projects/{project_id}/edit",
         ),
@@ -403,6 +409,7 @@ async def admin_project_members(
             request,
             current_user,
             db=db,
+            current_project_id=project_id,
             project=project,
             members=members,
             available_users=available_users,

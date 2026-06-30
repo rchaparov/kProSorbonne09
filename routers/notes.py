@@ -26,6 +26,7 @@ from database import (
 )
 
 from utils.file_viewer import serve_file_for_view
+from utils.nav import nav_context
 
 router = APIRouter(tags=["notes"])
 templates = Jinja2Templates(directory="templates")
@@ -243,6 +244,7 @@ async def edit_note_form(
             "note": note,
             "project": project,
             "unread_count": get_unread_count(user, db),
+            **nav_context(user, db, note.project_id),
         },
     )
 

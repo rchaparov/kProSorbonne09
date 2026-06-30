@@ -19,6 +19,7 @@ from database import (
     get_db_session,
 )
 from utils.progress import PROJECT_STATUS_LABELS, project_progress
+from utils.nav import nav_context
 
 router = APIRouter(tags=["analytics"])
 templates = Jinja2Templates(directory="templates")
@@ -121,5 +122,6 @@ async def analytics_page(
             "notes_this_week": notes_this_week,
             "now": now,
             "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db),
         },
     )
