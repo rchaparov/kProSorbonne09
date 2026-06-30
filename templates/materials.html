@@ -146,7 +146,7 @@
 
 {% if material_items %}
     {% if category %}
-    <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for item in material_items %}{{ material_card(item) }}{% endfor %}
     </div>
     {% else %}
@@ -155,7 +155,7 @@
         {% if grouped[cat] %}
         <section class="mb-8 material-section" data-section>
             <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ cat }}</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {% for item in grouped[cat] %}{{ material_card(item) }}{% endfor %}
             </div>
         </section>
