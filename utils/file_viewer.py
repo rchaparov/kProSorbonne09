@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from fastapi.responses import HTMLResponse, Response
 
 INLINE_TYPES = {
@@ -16,6 +18,13 @@ INLINE_TYPES = {
 
 MARKDOWN_TYPES = {"text/markdown", "text/x-markdown"}
 MARKDOWN_EXTENSIONS = {".md", ".markdown"}
+
+
+def _content_disposition_header(disposition: str, filename: str) -> str:
+    """Build Content-Disposition header safe for non-ASCII filenames."""
+    fallback = filename.encode("ascii", "replace").decode("ascii").replace("?", "_") or "file"
+    encoded = quote(filename, safe="")
+    return f'{disposition}; filename="{fallback}"; filename*=UTF-8\'\'{encoded}'
 
 
 def serve_file_for_view(
@@ -80,7 +89,7 @@ def serve_file_for_view(
             content=file_data,
             media_type=content_type,
             headers={
-                "Content-Disposition": f'inline; filename="{original_filename}"',
+                "Content-Disposition": _content_disposition_header("inline", original_filename),
                 "Cache-Control": "no-store",
             },
         )
@@ -89,6 +98,6 @@ def serve_file_for_view(
         content=file_data,
         media_type=content_type or "application/octet-stream",
         headers={
-            "Content-Disposition": f'attachment; filename="{original_filename}"',
+            "Content-Disposition": _content_disposition_header("attachment", original_filename),
         },
     )
