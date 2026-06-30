@@ -15,7 +15,7 @@
 - `templates/project_detail.html` — layout, nav, JS, пагинация
 
 ## Git
-- commit hash: [вставить]
+- commit hash: ff685e1
 - branch: main
 - push: ожидает "ПРИНЯТО"
 
