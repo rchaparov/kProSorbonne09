@@ -29,6 +29,7 @@ from utils.progress import (
     project_progress,
 )
 from utils.nav import nav_context
+from utils.pagination import paginate_range
 
 router = APIRouter(tags=["projects"])
 templates = Jinja2Templates(directory="templates")
@@ -180,6 +181,7 @@ async def project_detail(
             "unread_count": get_unread_count(current_user, db),
             "page": page,
             "total_pages": total_pages,
+            "page_numbers": paginate_range(page, total_pages),
             "total_roots": total_roots,
             "notes_from": notes_from,
             "notes_to": notes_to,

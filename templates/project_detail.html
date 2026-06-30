@@ -57,17 +57,49 @@
     </div>
 </div>
 
+<div class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2 mb-4 bg-gray-50/90 backdrop-blur border-b border-gray-200">
+    <nav class="flex items-center gap-1 overflow-x-auto text-sm" aria-label="Разделы проекта">
+        <a href="#section-checklist" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <span class="hidden lg:inline">Чеклист</span>
+            <span class="text-gray-400">({{ checklist_done }}/{{ checklist_total }})</span>
+        </a>
+        <a href="#section-members" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+            </svg>
+            <span class="hidden lg:inline">Участники</span>
+            <span class="text-gray-400">({{ members|length }})</span>
+        </a>
+        <a href="#section-notes" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+            </svg>
+            <span class="hidden lg:inline">Заметки</span>
+            <span class="text-gray-400">({{ total_roots }})</span>
+        </a>
+    </nav>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <div class="lg:col-span-1 space-y-6">
-        <div class="bg-white shadow rounded-lg p-6">
+    <div class="lg:col-span-1 space-y-6 order-2 lg:order-none">
+        <div id="section-checklist" class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">
                 Чеклист
                 <span class="text-sm font-normal text-gray-500">({{ checklist_done }}/{{ checklist_total }})</span>
             </h2>
             {% if checklist_items %}
+            <div class="flex items-center justify-end mb-2">
+                <label class="inline-flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                    <input type="checkbox" id="hide-done-toggle" class="rounded border-gray-300 text-indigo-600">
+                    Скрыть выполненные
+                </label>
+            </div>
             <div class="space-y-0">
                 {% for item in checklist_items %}
-                <div class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
+                <div class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0" data-done="{{ item.is_done|lower }}">
                     {% if can_write %}
                     <form action="/checklist/{{ item.id }}/toggle" method="post" class="flex-shrink-0">
                         <button type="submit" class="inline-flex items-center" title="{% if item.is_done %}Снять отметку{% else %}Выполнено{% endif %}">
@@ -159,7 +191,7 @@
             {% endif %}
         </div>
 
-        <div class="bg-white shadow rounded-lg p-6">
+        <div id="section-members" class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Участники</h2>
             {% if members %}
             <ul class="space-y-3">
@@ -183,7 +215,7 @@
         </div>
     </div>
 
-    <div class="lg:col-span-2 space-y-6">
+    <div id="section-notes" class="lg:col-span-2 space-y-6 order-1 lg:order-none">
         {% if can_write %}
         <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Добавить заметку</h2>
@@ -500,12 +532,22 @@
             {% if total_pages > 1 %}
             <div class="mt-6 flex items-center justify-between text-sm text-gray-600">
                 <span>Заметки {{ notes_from }}–{{ notes_to }} из {{ total_roots }}</span>
-                <div class="flex gap-2">
+                <div class="flex items-center gap-1">
                     {% if page > 1 %}
-                    <a href="/projects/{{ project.id }}?page={{ page - 1 }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">← Предыдущие</a>
+                    <a href="/projects/{{ project.id }}?page={{ page - 1 }}" class="rounded-md border border-gray-300 px-2.5 py-1.5 hover:bg-gray-50" aria-label="Предыдущая страница">←</a>
                     {% endif %}
+                    {% for p in page_numbers %}
+                        {% if p == '...' %}
+                        <span class="px-2 text-gray-400">…</span>
+                        {% else %}
+                        <a href="/projects/{{ project.id }}?page={{ p }}"
+                           class="rounded-md px-3 py-1.5 {% if p == page %}bg-indigo-600 text-white{% else %}border border-gray-300 hover:bg-gray-50{% endif %}">
+                            {{ p }}
+                        </a>
+                        {% endif %}
+                    {% endfor %}
                     {% if page < total_pages %}
-                    <a href="/projects/{{ project.id }}?page={{ page + 1 }}" class="rounded-md border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Следующие →</a>
+                    <a href="/projects/{{ project.id }}?page={{ page + 1 }}" class="rounded-md border border-gray-300 px-2.5 py-1.5 hover:bg-gray-50" aria-label="Следующая страница">→</a>
                     {% endif %}
                 </div>
             </div>
@@ -918,6 +960,66 @@ document.addEventListener('click', function(e) {
         if (document.visibilityState === 'visible') {
             pollNotes();
         }
+    });
+})();
+</script>
+
+<button
+    id="scroll-top-btn"
+    type="button"
+    class="fixed bottom-6 right-6 z-40 inline-flex items-center justify-center w-11 h-11 rounded-full bg-indigo-600 text-white shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 hover:bg-indigo-700"
+    aria-label="Наверх"
+>
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+    </svg>
+</button>
+
+<script>
+document.querySelectorAll('.section-nav-link').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            const offset = 70;
+            const top = target.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top: top, behavior: 'smooth' });
+        }
+    });
+});
+
+(function() {
+    const btn = document.getElementById('scroll-top-btn');
+    if (!btn) return;
+    let ticking = false;
+    window.addEventListener('scroll', function() {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function() {
+            if (window.scrollY > 600) {
+                btn.classList.remove('opacity-0', 'pointer-events-none');
+                btn.classList.add('opacity-100');
+            } else {
+                btn.classList.add('opacity-0', 'pointer-events-none');
+                btn.classList.remove('opacity-100');
+            }
+            ticking = false;
+        });
+    });
+    btn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+})();
+
+(function() {
+    const toggle = document.getElementById('hide-done-toggle');
+    if (!toggle) return;
+    toggle.addEventListener('change', function() {
+        document.querySelectorAll('[data-done]').forEach(function(row) {
+            if (row.dataset.done === 'true') {
+                row.classList.toggle('hidden', toggle.checked);
+            }
+        });
     });
 })();
 </script>
