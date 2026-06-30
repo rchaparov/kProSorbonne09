@@ -664,27 +664,49 @@ document.addEventListener('click', function(e) {
         dropdown.style.maxHeight = '200px';
         dropdown.style.overflowY = 'auto';
         document.body.appendChild(dropdown);
+
+        dropdown.addEventListener('mouseover', function(e) {
+            const item = e.target.closest('.mention-item');
+            if (!item) return;
+            const idx = parseInt(item.dataset.index, 10);
+            if (!isNaN(idx) && idx !== activeIndex) {
+                activeIndex = idx;
+                renderDropdownItems();
+            }
+        });
+
+        dropdown.addEventListener('mousedown', function(e) {
+            const item = e.target.closest('.mention-item');
+            if (!item) return;
+            e.preventDefault();
+            const idx = parseInt(item.dataset.index, 10);
+            if (!isNaN(idx) && filteredItems[idx]) {
+                insertMention(filteredItems[idx]);
+            }
+        });
     }
 
     function renderDropdownItems() {
         if (!dropdown) return;
+
+        if (dropdown.children.length === filteredItems.length) {
+            Array.from(dropdown.children).forEach(function(child, index) {
+                child.style.background = index === activeIndex ? '#EEF2FF' : '';
+            });
+            positionDropdown();
+            return;
+        }
+
         dropdown.innerHTML = '';
         filteredItems.forEach(function(member, index) {
             const item = document.createElement('div');
             item.className = 'mention-item';
+            item.dataset.index = String(index);
             item.style.padding = '8px 12px';
             item.style.cursor = 'pointer';
             if (index === activeIndex) {
                 item.style.background = '#EEF2FF';
             }
-            item.addEventListener('mouseenter', function() {
-                activeIndex = index;
-                renderDropdownItems();
-            });
-            item.addEventListener('mousedown', function(e) {
-                e.preventDefault();
-                insertMention(member);
-            });
 
             if (member.id === 'all') {
                 item.innerHTML = '<span style="font-style: italic;">@all</span> <span style="font-size: 12px; color: #6B7280;">— все участники</span>';
@@ -693,6 +715,7 @@ document.addEventListener('click', function(e) {
             }
             dropdown.appendChild(item);
         });
+
         positionDropdown();
     }
 
