@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Аналитика — K-PRO Sorbonne 09 TeamSpace{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">Аналитика</h1>
+    <p class="mt-1 text-sm text-gray-600">Сводная картина по всей команде</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Проекты по статусам</h2>
+        {% for status, label in status_labels.items() %}
+        {% set count = status_counts.get(status, 0) %}
+        {% set pct = (count / total_projects * 100) if total_projects > 0 else 0 %}
+        <div class="mb-3">
+            <div class="flex justify-between text-sm mb-1">
+                <span class="text-gray-600">{{ label }}</span>
+                <span class="font-medium text-gray-900">{{ count }}</span>
+            </div>
+            <div class="bg-gray-200 rounded-full h-2">
+                <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ pct }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+        <p class="text-xs text-gray-400 mt-2">Всего проектов: {{ total_projects }}</p>
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Проекты в зоне риска</h2>
+        <p class="text-xs text-gray-400 mb-3">Дедлайн в ближайшие 3 дня или просрочен</p>
+        {% for project in risky_projects %}
+        <a href="/projects/{{ project.id }}" class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded">
+            <span class="text-sm text-gray-900">{{ project.title }}</span>
+            {% if project.deadline < now %}
+            <span class="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Просрочен</span>
+            {% else %}
+            <span class="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                {{ (project.deadline - now).days }} дн.
+            </span>
+            {% endif %}
+        </a>
+        {% else %}
+        <p class="text-sm text-gray-400">Нет проектов в зоне риска</p>
+        {% endfor %}
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6 lg:col-span-2">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Нагрузка по участникам</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-gray-500 border-b border-gray-200">
+                        <th class="pb-2 font-medium">Участник</th>
+                        <th class="pb-2 font-medium text-right">Проекты</th>
+                        <th class="pb-2 font-medium text-right">Открытые задачи</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in workload %}
+                    <tr class="border-b border-gray-100 last:border-0">
+                        <td class="py-2 text-gray-900">{{ w.user.full_name }}</td>
+                        <td class="py-2 text-right text-gray-600">{{ w.project_count }}</td>
+                        <td class="py-2 text-right">
+                            <span class="{% if w.open_tasks > 5 %}text-red-600 font-semibold{% else %}text-gray-600{% endif %}">
+                                {{ w.open_tasks }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-2">Общий прогресс</h2>
+        <div class="text-center py-4">
+            <div class="text-4xl font-bold text-indigo-600">{{ avg_progress }}%</div>
+            <div class="text-sm text-gray-500 mt-1">Средний прогресс активных проектов</div>
+        </div>
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-2">Активность за неделю</h2>
+        <div class="text-center py-4">
+            <div class="text-4xl font-bold text-indigo-600">{{ notes_this_week }}</div>
+            <div class="text-sm text-gray-500 mt-1">Заметок за последние 7 дней</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
