@@ -17,7 +17,7 @@
 - `routers/dashboard.py`, `projects.py`, `checklist.py`, `notes.py`, `materials.py`, `analytics.py`, `admin.py`, `notifications.py`, `search.py`, `profile.py`
 
 ## Git
-- commit hash: [вставить]
+- commit hash: 28a4a3c
 - branch: main
 - push: ожидает "ПРИНЯТО"
 
