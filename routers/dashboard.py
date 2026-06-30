@@ -1,6 +1,7 @@
 """Dashboard routes."""
 
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
@@ -9,8 +10,9 @@ from sqlalchemy import Integer, func
 from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count
-from database import ChecklistItem, Project, ProjectMember, User, get_db_session
+from database import ChecklistItem, Project, ProjectMember, get_db_session
 from utils.progress import (
+    PROJECT_STATUSES,
     PROJECT_STATUS_COLORS,
     PROJECT_STATUS_LABELS,
     project_progress,
@@ -23,6 +25,8 @@ templates = Jinja2Templates(directory="templates")
 @router.get("/")
 async def dashboard(
     request: Request,
+    status: Optional[str] = None,
+    mine: Optional[int] = None,
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
@@ -30,7 +34,27 @@ async def dashboard(
     if isinstance(current_user, RedirectResponse):
         return current_user
 
-    projects = db.query(Project).order_by(Project.created_at.desc()).all()
+    query = db.query(Project).order_by(Project.created_at.desc())
+
+    active_status = status if status in PROJECT_STATUSES else None
+    if active_status:
+        query = query.filter_by(status=active_status)
+
+    mine_only = bool(mine)
+    if mine_only:
+        member_project_ids = {
+            row[0]
+            for row in db.query(ProjectMember.project_id)
+            .filter_by(user_id=current_user.id)
+            .all()
+        }
+        if member_project_ids:
+            query = query.filter(Project.id.in_(member_project_ids))
+        else:
+            query = query.filter(Project.id.in_([]))
+
+    projects = query.all()
+
     member_counts = dict(
         db.query(ProjectMember.project_id, func.count(ProjectMember.id))
         .group_by(ProjectMember.project_id)
@@ -71,6 +95,9 @@ async def dashboard(
             "progress_pcts": progress_pcts,
             "status_labels": PROJECT_STATUS_LABELS,
             "status_colors": PROJECT_STATUS_COLORS,
+            "active_status": active_status,
+            "mine_only": mine_only,
+            "all_statuses": PROJECT_STATUSES,
             "now": datetime.utcnow(),
             "unread_count": get_unread_count(current_user, db),
         },

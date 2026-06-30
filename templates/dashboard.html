@@ -8,11 +8,37 @@
     <p class="mt-1 text-sm text-gray-600">Все проекты команды</p>
 </div>
 
+<div class="mb-6 space-y-3">
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="/?{% if mine_only %}mine=1{% endif %}"
+           class="px-3 py-1.5 rounded-full text-xs font-medium {% if not active_status %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+            Все
+        </a>
+        {% for status in all_statuses %}
+        <a href="/?status={{ status }}{% if mine_only %}&mine=1{% endif %}"
+           class="px-3 py-1.5 rounded-full text-xs font-medium {% if active_status == status %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+            {{ status_labels[status] }}
+        </a>
+        {% endfor %}
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <label class="inline-flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+            <input type="checkbox" id="mine-toggle" {% if mine_only %}checked{% endif %}
+                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+            Только мои проекты
+        </label>
+        <input type="text" id="project-search" placeholder="Поиск по названию..."
+               class="w-full sm:w-64 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+    </div>
+</div>
+
 {% if projects %}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div id="projects-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
     {% for project in projects %}
     <a
         href="/projects/{{ project.id }}"
+        data-project-card
+        data-title="{{ project.title | lower | e }}"
         class="block bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow {% if project.status in ('completed', 'on_hold') %}opacity-60{% endif %}"
     >
         <div class="flex items-start gap-3">
@@ -88,9 +114,58 @@
     </a>
     {% endfor %}
 </div>
+
+<div id="no-results" class="hidden text-center py-12 text-sm text-gray-400">
+    Проекты не найдены
+</div>
+{% elif active_status or mine_only %}
+<div class="bg-white shadow rounded-lg p-8 text-center text-gray-400">
+    Проекты не найдены
+</div>
 {% else %}
 <div class="bg-white shadow rounded-lg p-8 text-center text-gray-600">
     Проектов пока нет.
 </div>
 {% endif %}
+
+<script>
+(function() {
+    const mineToggle = document.getElementById('mine-toggle');
+    if (mineToggle) {
+        mineToggle.addEventListener('change', function() {
+            const url = new URL(window.location);
+            if (this.checked) {
+                url.searchParams.set('mine', '1');
+            } else {
+                url.searchParams.delete('mine');
+            }
+            window.location = url.toString();
+        });
+    }
+
+    const searchInput = document.getElementById('project-search');
+    const cards = document.querySelectorAll('[data-project-card]');
+    const noResults = document.getElementById('no-results');
+    const projectsGrid = document.getElementById('projects-grid');
+
+    if (!searchInput || cards.length === 0) return;
+
+    searchInput.addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        let visibleCount = 0;
+        cards.forEach(function(card) {
+            const title = (card.dataset.title || '').toLowerCase();
+            const match = title.includes(q);
+            card.classList.toggle('hidden', !match);
+            if (match) visibleCount++;
+        });
+        if (noResults) {
+            noResults.classList.toggle('hidden', visibleCount > 0);
+        }
+        if (projectsGrid) {
+            projectsGrid.classList.toggle('hidden', visibleCount === 0);
+        }
+    });
+})();
+</script>
 {% endblock %}
