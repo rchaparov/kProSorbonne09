@@ -14,7 +14,7 @@
 - `templates/materials.html`, `material_form.html`, `material_edit.html`, `project_detail.html`
 
 ## Git
-- commit hash: [вставить]
+- commit hash: 5f03475
 - branch: main
 - push: ожидает "ПРИНЯТО"
 
