@@ -11,7 +11,7 @@
 {% endblock %}
 
 {% macro material_card(item) %}
-<div class="bg-white shadow rounded-lg p-6" id="material-{{ item.material.id }}">
+<div class="bg-white shadow rounded-lg p-6" id="material-{{ item.material.id }}" data-material-card data-title="{{ item.material.title|lower|e }}">
     <div class="flex items-start justify-between gap-3">
         <div class="flex items-start gap-3 min-w-0">
             {% if item.material.category == 'Презентации' %}
@@ -31,17 +31,27 @@
             </div>
         </div>
         {% if current_user.system_role == 'admin' or current_user.id == item.material.added_by %}
-        <form action="/materials/{{ item.material.id }}/delete" method="post" data-confirm="Удалить материал?">
-            <button type="submit" class="p-2 text-red-600 hover:text-red-800" title="Удалить">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-            </button>
-        </form>
+        <div class="flex items-center gap-1 flex-shrink-0">
+            <a href="/materials/{{ item.material.id }}/edit" class="p-2 text-gray-600 hover:text-indigo-600" title="Редактировать">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                </svg>
+            </a>
+            <form action="/materials/{{ item.material.id }}/delete" method="post" data-confirm="Удалить материал?">
+                <button type="submit" class="p-2 text-red-600 hover:text-red-800" title="Удалить">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                </button>
+            </form>
+        </div>
         {% endif %}
     </div>
     {% if item.material.description %}
     <p class="mt-3 text-sm text-gray-600">{{ item.material.description }}</p>
     {% endif %}
     <p class="mt-2 text-xs text-gray-500">{{ item.author.full_name if item.author else '—' }} · <time data-utc="{{ item.material.created_at.isoformat() }}">{{ item.material.created_at.strftime('%d.%m.%Y') }}</time></p>
+    {% if item.usage_count > 0 %}
+    <p class="mt-2 text-xs text-gray-400">Используется в {{ item.usage_count }} заметк{{ 'е' if item.usage_count == 1 else 'ах' }}</p>
+    {% endif %}
     {% if item.material.url %}
     <a href="{{ item.material.url }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>
@@ -76,6 +86,21 @@
         {% endfor %}
     </ul>
     {% endif %}
+    {% if current_user.system_role == 'admin' or current_user.id == item.material.added_by %}
+    <details class="mt-3">
+        <summary class="text-xs text-indigo-600 cursor-pointer">+ Добавить файл</summary>
+        <form action="/materials/{{ item.material.id }}/files" method="post" enctype="multipart/form-data" class="mt-2">
+            <input
+                type="file"
+                name="files"
+                multiple
+                class="multi-file-input text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+            >
+            <div class="selected-files-list flex flex-wrap gap-1 mt-1"></div>
+            <button type="submit" class="mt-2 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-700">Загрузить</button>
+        </form>
+    </details>
+    {% endif %}
 </div>
 {% endmacro %}
 
@@ -93,26 +118,42 @@
 
 {% if msg == 'added' %}
 <div class="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">Материал добавлен.</div>
+{% elif msg == 'updated' %}
+<div class="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">Материал обновлён.</div>
+{% elif msg == 'files_added' %}
+<div class="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">Файлы добавлены.</div>
 {% elif msg == 'deleted' %}
 <div class="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">Материал удалён.</div>
 {% endif %}
 
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <input type="text" id="material-search" placeholder="Поиск по названию..."
+           class="w-full sm:w-64 rounded-md border border-gray-300 px-3 py-1.5 text-sm">
+    <label class="inline-flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+        <input type="checkbox" id="mine-toggle" {% if mine_only %}checked{% endif %} class="rounded border-gray-300 text-indigo-600">
+        Добавлено мной
+    </label>
+</div>
+
 <div class="mb-6 flex flex-wrap gap-2">
-    <a href="/materials" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {% if not category %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">Все</a>
+    <a href="/materials{% if mine_only %}?mine=1{% endif %}" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {% if not category %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">Все</a>
     {% for cat in categories %}
-    <a href="/materials?category={{ cat }}" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {% if category == cat %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">{{ cat }}</a>
+    <a href="/materials?category={{ cat }}{% if mine_only %}&mine=1{% endif %}" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {% if category == cat %}bg-indigo-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">{{ cat }}</a>
     {% endfor %}
 </div>
 
+<div id="no-materials-results" class="hidden text-center py-8 text-sm text-gray-400">Материалы не найдены</div>
+
 {% if material_items %}
     {% if category %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% for item in material_items %}{{ material_card(item) }}{% endfor %}
     </div>
     {% else %}
+    <div id="materials-sections">
         {% for cat in categories %}
         {% if grouped[cat] %}
-        <section class="mb-8">
+        <section class="mb-8 material-section" data-section>
             <h2 class="text-lg font-semibold text-gray-900 mb-4">{{ cat }}</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {% for item in grouped[cat] %}{{ material_card(item) }}{% endfor %}
@@ -120,8 +161,74 @@
         </section>
         {% endif %}
         {% endfor %}
+    </div>
     {% endif %}
 {% else %}
 <div class="bg-white shadow rounded-lg p-8 text-center text-gray-500">Материалов пока нет. Добавьте первый материал.</div>
 {% endif %}
+
+<script>
+(function() {
+    const mineToggle = document.getElementById('mine-toggle');
+    if (mineToggle) {
+        mineToggle.addEventListener('change', function() {
+            const url = new URL(window.location);
+            if (this.checked) {
+                url.searchParams.set('mine', '1');
+            } else {
+                url.searchParams.delete('mine');
+            }
+            window.location = url.toString();
+        });
+    }
+
+    const searchInput = document.getElementById('material-search');
+    const cards = document.querySelectorAll('[data-material-card]');
+    const noResults = document.getElementById('no-materials-results');
+    const materialsGrid = document.getElementById('materials-grid');
+    const sections = document.querySelectorAll('[data-section]');
+
+    if (searchInput && cards.length > 0) {
+        searchInput.addEventListener('input', function() {
+            const q = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+            cards.forEach(function(card) {
+                const title = (card.dataset.title || '').toLowerCase();
+                const match = title.includes(q);
+                card.classList.toggle('hidden', !match);
+                if (match) visibleCount++;
+            });
+            sections.forEach(function(section) {
+                const sectionCards = section.querySelectorAll('[data-material-card]');
+                const sectionVisible = Array.from(sectionCards).some(function(c) {
+                    return !c.classList.contains('hidden');
+                });
+                section.classList.toggle('hidden', !sectionVisible);
+            });
+            if (noResults) {
+                noResults.classList.toggle('hidden', visibleCount > 0);
+            }
+            if (materialsGrid) {
+                materialsGrid.classList.toggle('hidden', visibleCount === 0);
+            }
+        });
+    }
+
+    document.querySelectorAll('.multi-file-input').forEach(function(fileInput) {
+        const fileList = fileInput.parentElement
+            ? fileInput.parentElement.querySelector('.selected-files-list')
+            : null;
+        if (!fileList) return;
+        fileInput.addEventListener('change', function() {
+            fileList.innerHTML = '';
+            Array.from(this.files).forEach(function(file) {
+                const chip = document.createElement('span');
+                chip.className = 'inline-flex items-center gap-1 text-xs bg-gray-100 rounded-full px-2 py-1';
+                chip.textContent = file.name;
+                fileList.appendChild(chip);
+            });
+        });
+    });
+})();
+</script>
 {% endblock %}

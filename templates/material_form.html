@@ -30,11 +30,36 @@
                 <input type="url" id="url" name="url" placeholder="https://..." class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
             </div>
             <div>
-                <label for="file" class="block text-sm font-medium text-gray-700 mb-1">Файл (необязательно)</label>
-                <input type="file" id="file" name="file" class="text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100">
+                <label for="files" class="block text-sm font-medium text-gray-700 mb-1">Файлы (необязательно, до 5)</label>
+                <input
+                    type="file"
+                    id="files"
+                    name="files"
+                    multiple
+                    class="multi-file-input text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+                >
+                <div class="selected-files-list flex flex-wrap gap-1 mt-2"></div>
             </div>
             <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Сохранить</button>
         </form>
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.multi-file-input').forEach(function(fileInput) {
+    const fileList = fileInput.parentElement
+        ? fileInput.parentElement.querySelector('.selected-files-list')
+        : null;
+    if (!fileList) return;
+    fileInput.addEventListener('change', function() {
+        fileList.innerHTML = '';
+        Array.from(this.files).forEach(function(file) {
+            const chip = document.createElement('span');
+            chip.className = 'inline-flex items-center gap-1 text-xs bg-gray-100 rounded-full px-2 py-1';
+            chip.textContent = file.name;
+            fileList.appendChild(chip);
+        });
+    });
+});
+</script>
 {% endblock %}

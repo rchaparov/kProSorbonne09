@@ -1,19 +1,28 @@
 """Shared knowledge base materials routes."""
 
-from typing import Optional
+from typing import List
 from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_current_user, get_unread_count
 from config import settings
-from database import MATERIAL_CATEGORIES, Material, MaterialFile, User, get_db_session
+from database import (
+    MATERIAL_CATEGORIES,
+    Material,
+    MaterialFile,
+    NoteMaterialLink,
+    User,
+    get_db_session,
+)
 from utils.file_viewer import serve_file_for_view
 from utils.nav import nav_context
+from utils.uploads import read_validated_files
 
 router = APIRouter(tags=["materials"])
 templates = Jinja2Templates(directory="templates")
@@ -63,22 +72,43 @@ def _can_delete_material(material: Material, user: User) -> bool:
     return user.system_role == "admin" or material.added_by == user.id
 
 
-def _load_material_items(materials: list[Material]) -> list[dict]:
-    """Attach author and files to each material."""
+def _load_material_items(materials: list[Material], usage_counts: dict[int, int]) -> list[dict]:
+    """Attach author, files, and usage count to each material."""
     return [
         {
             "material": material,
             "author": material.author,
             "files": material.files,
+            "usage_count": usage_counts.get(material.id, 0),
         }
         for material in materials
     ]
+
+
+def _add_material_files(
+    material_id: int,
+    payloads: list[tuple[str, str, bytes]],
+    db: DbSession,
+) -> None:
+    """Create MaterialFile rows from validated file payloads."""
+    for original_filename, content_type, file_bytes in payloads:
+        db.add(
+            MaterialFile(
+                material_id=material_id,
+                filename=str(uuid4()),
+                original_filename=original_filename,
+                file_size=len(file_bytes),
+                content_type=content_type,
+                file_data=file_bytes,
+            )
+        )
 
 
 @router.get("/materials")
 async def materials_list(
     request: Request,
     category: str | None = None,
+    mine: int | None = None,
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
@@ -95,8 +125,19 @@ async def materials_list(
     active_category = category if category in MATERIAL_CATEGORIES else None
     if active_category:
         query = query.filter_by(category=active_category)
+    mine_only = bool(mine)
+    if mine_only:
+        query = query.filter_by(added_by=user.id)
 
-    material_items = _load_material_items(query.all())
+    materials = query.all()
+
+    usage_counts = dict(
+        db.query(NoteMaterialLink.material_id, func.count(NoteMaterialLink.id))
+        .group_by(NoteMaterialLink.material_id)
+        .all()
+    )
+
+    material_items = _load_material_items(materials, usage_counts)
     grouped: dict[str, list[dict]] = {cat: [] for cat in MATERIAL_CATEGORIES}
     for item in material_items:
         cat = item["material"].category
@@ -112,6 +153,7 @@ async def materials_list(
             "category": active_category,
             "grouped": grouped,
             "material_items": material_items,
+            "mine_only": mine_only,
             "msg": request.query_params.get("msg"),
             "unread_count": get_unread_count(user, db),
             "office_viewer_enabled": bool(settings.BASE_URL),
@@ -149,7 +191,7 @@ async def material_create(
     description: str = Form(""),
     category: str = Form("Другое"),
     url: str = Form(""),
-    file: Optional[UploadFile] = File(default=None),
+    files: List[UploadFile] = File(default=[]),
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
@@ -157,6 +199,8 @@ async def material_create(
     user = _require_user(current_user)
     if isinstance(user, RedirectResponse):
         return user
+
+    payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
 
     if category not in MATERIAL_CATEGORIES:
         category = "Другое"
@@ -171,26 +215,97 @@ async def material_create(
     db.add(material)
     db.flush()
 
-    if file and file.filename:
-        file_bytes = await file.read()
-        if len(file_bytes) > settings.MAX_UPLOAD_BYTES:
-            raise HTTPException(
-                status_code=413,
-                detail=f"Файл превышает лимит {settings.MAX_UPLOAD_BYTES // 1048576}MB",
-            )
-        db.add(
-            MaterialFile(
-                material_id=material.id,
-                filename=str(uuid4()),
-                original_filename=file.filename,
-                file_size=len(file_bytes),
-                content_type=file.content_type or "application/octet-stream",
-                file_data=file_bytes,
-            )
-        )
+    _add_material_files(material.id, payloads, db)
 
     db.commit()
     return RedirectResponse("/materials?msg=added", status_code=303)
+
+
+@router.get("/materials/{material_id}/edit")
+async def material_edit_form(
+    material_id: int,
+    request: Request,
+    current_user=Depends(get_current_user),
+    db: DbSession = Depends(get_db_session),
+):
+    """Render the material edit form."""
+    user = _require_user(current_user)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    material = db.query(Material).filter_by(id=material_id).first()
+    if not material:
+        raise HTTPException(status_code=404, detail="Material not found")
+    if not _can_delete_material(material, user):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    return templates.TemplateResponse(
+        "material_edit.html",
+        {
+            "request": request,
+            "current_user": user,
+            "material": material,
+            "categories": MATERIAL_CATEGORIES,
+            "unread_count": get_unread_count(user, db),
+            **nav_context(user, db),
+        },
+    )
+
+
+@router.post("/materials/{material_id}/edit")
+async def material_edit(
+    material_id: int,
+    title: str = Form(...),
+    description: str = Form(""),
+    category: str = Form("Другое"),
+    url: str = Form(""),
+    current_user=Depends(get_current_user),
+    db: DbSession = Depends(get_db_session),
+):
+    """Update material metadata."""
+    user = _require_user(current_user)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    material = db.query(Material).filter_by(id=material_id).first()
+    if not material:
+        raise HTTPException(status_code=404, detail="Material not found")
+    if not _can_delete_material(material, user):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    material.title = title
+    material.description = description or None
+    material.category = category if category in MATERIAL_CATEGORIES else "Другое"
+    material.url = url or None
+    db.commit()
+    return RedirectResponse("/materials?msg=updated", status_code=303)
+
+
+@router.post("/materials/{material_id}/files")
+async def material_add_files(
+    material_id: int,
+    files: List[UploadFile] = File(default=[]),
+    current_user=Depends(get_current_user),
+    db: DbSession = Depends(get_db_session),
+):
+    """Add files to an existing material."""
+    user = _require_user(current_user)
+    if isinstance(user, RedirectResponse):
+        return user
+
+    material = db.query(Material).filter_by(id=material_id).first()
+    if not material:
+        raise HTTPException(status_code=404, detail="Material not found")
+    if not _can_delete_material(material, user):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
+    if not payloads:
+        raise HTTPException(status_code=400, detail="Выберите хотя бы один файл")
+
+    _add_material_files(material_id, payloads, db)
+    db.commit()
+    return RedirectResponse("/materials?msg=files_added", status_code=303)
 
 
 @router.post("/materials/{material_id}/delete")

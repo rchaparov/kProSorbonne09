@@ -250,14 +250,18 @@
                 {% if all_materials %}
                 <details class="mt-2">
                     <summary class="text-sm text-gray-600 cursor-pointer">Прикрепить из базы знаний</summary>
-                    <div class="mt-2 max-h-40 overflow-y-auto space-y-1 pl-2">
-                        {% for mat in all_materials %}
-                        <label class="flex items-center gap-2 text-sm">
-                            <input type="checkbox" name="material_ids" value="{{ mat.id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
-                            <span class="text-gray-700">{{ mat.title }}</span>
-                            <span class="inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{{ mat.category }}</span>
-                        </label>
-                        {% endfor %}
+                    <div class="mt-2">
+                        <input type="text" id="material-filter" placeholder="Поиск материала..."
+                               class="w-full rounded-md border border-gray-300 px-2 py-1 text-xs mb-2">
+                        <div class="max-h-40 overflow-y-auto space-y-1 pl-2">
+                            {% for mat in all_materials %}
+                            <label class="material-checkbox-row flex items-center gap-2 text-sm" data-title="{{ mat.title|lower|e }}">
+                                <input type="checkbox" name="material_ids" value="{{ mat.id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                <span class="text-gray-700">{{ mat.title }}</span>
+                                <span class="inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{{ mat.category }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
                     </div>
                 </details>
                 {% endif %}
@@ -1019,6 +1023,18 @@ document.querySelectorAll('.section-nav-link').forEach(function(link) {
             if (row.dataset.done === 'true') {
                 row.classList.toggle('hidden', toggle.checked);
             }
+        });
+    });
+})();
+
+(function() {
+    const filterInput = document.getElementById('material-filter');
+    if (!filterInput) return;
+    filterInput.addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        document.querySelectorAll('.material-checkbox-row').forEach(function(row) {
+            const title = (row.dataset.title || '').toLowerCase();
+            row.classList.toggle('hidden', q !== '' && !title.includes(q));
         });
     });
 })();

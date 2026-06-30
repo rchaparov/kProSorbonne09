@@ -27,11 +27,10 @@ from database import (
 
 from utils.file_viewer import serve_file_for_view
 from utils.nav import nav_context
+from utils.uploads import read_validated_files
 
 router = APIRouter(tags=["notes"])
 templates = Jinja2Templates(directory="templates")
-
-MAX_FILES_PER_UPLOAD = 5
 
 INLINE_TYPES = {
     "application/pdf",
@@ -83,42 +82,6 @@ def _can_edit_note(note: Note, user: User) -> bool:
     return user.system_role == "admin" or note.author_id == user.id
 
 
-def _normalize_upload_files(files: Optional[List[UploadFile]]) -> List[UploadFile]:
-    """Normalize multipart file list from the form."""
-    if not files:
-        return []
-    if isinstance(files, UploadFile):
-        return [files] if files.filename else []
-    return [upload for upload in files if upload and upload.filename]
-
-
-async def _read_validated_attachments(files: Optional[List[UploadFile]]) -> List[tuple]:
-    """Read uploads and validate count and size limits."""
-    real_files = _normalize_upload_files(files)
-    if len(real_files) > MAX_FILES_PER_UPLOAD:
-        raise HTTPException(status_code=400, detail="Не более 5 файлов за раз")
-
-    payloads: List[tuple] = []
-    for upload in real_files:
-        file_bytes = await upload.read()
-        if len(file_bytes) > settings.MAX_UPLOAD_BYTES:
-            raise HTTPException(
-                status_code=413,
-                detail=(
-                    f"Файл «{upload.filename}» превышает лимит "
-                    f"{settings.MAX_UPLOAD_BYTES // 1048576}MB"
-                ),
-            )
-        payloads.append(
-            (
-                upload.filename,
-                upload.content_type or "application/octet-stream",
-                file_bytes,
-            )
-        )
-    return payloads
-
-
 def _add_attachments_from_payloads(
     note_id: int, payloads: List[tuple], db: DbSession
 ) -> None:
@@ -156,7 +119,7 @@ async def create_note(
     if not can_write_to_project(project_id, user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    file_payloads = await _read_validated_attachments(files)
+    file_payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
 
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
@@ -324,7 +287,7 @@ async def upload_attachment(
     if not can_write_to_project(note.project_id, user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    file_payloads = await _read_validated_attachments(files)
+    file_payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
     if not file_payloads:
         raise HTTPException(status_code=400, detail="Выберите хотя бы один файл")
 
