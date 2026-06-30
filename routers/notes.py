@@ -30,6 +30,8 @@ from utils.file_viewer import serve_file_for_view
 router = APIRouter(tags=["notes"])
 templates = Jinja2Templates(directory="templates")
 
+MAX_FILES_PER_UPLOAD = 5
+
 INLINE_TYPES = {
     "application/pdf",
     "image/jpeg",
@@ -80,6 +82,59 @@ def _can_edit_note(note: Note, user: User) -> bool:
     return user.system_role == "admin" or note.author_id == user.id
 
 
+def _normalize_upload_files(files: Optional[List[UploadFile]]) -> List[UploadFile]:
+    """Normalize multipart file list from the form."""
+    if not files:
+        return []
+    if isinstance(files, UploadFile):
+        return [files] if files.filename else []
+    return [upload for upload in files if upload and upload.filename]
+
+
+async def _read_validated_attachments(files: Optional[List[UploadFile]]) -> List[tuple]:
+    """Read uploads and validate count and size limits."""
+    real_files = _normalize_upload_files(files)
+    if len(real_files) > MAX_FILES_PER_UPLOAD:
+        raise HTTPException(status_code=400, detail="Не более 5 файлов за раз")
+
+    payloads: List[tuple] = []
+    for upload in real_files:
+        file_bytes = await upload.read()
+        if len(file_bytes) > settings.MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"Файл «{upload.filename}» превышает лимит "
+                    f"{settings.MAX_UPLOAD_BYTES // 1048576}MB"
+                ),
+            )
+        payloads.append(
+            (
+                upload.filename,
+                upload.content_type or "application/octet-stream",
+                file_bytes,
+            )
+        )
+    return payloads
+
+
+def _add_attachments_from_payloads(
+    note_id: int, payloads: List[tuple], db: DbSession
+) -> None:
+    """Create NoteAttachment rows from validated file payloads."""
+    for original_filename, content_type, file_bytes in payloads:
+        db.add(
+            NoteAttachment(
+                note_id=note_id,
+                filename=str(uuid4()),
+                original_filename=original_filename,
+                file_size=len(file_bytes),
+                content_type=content_type,
+                file_data=file_bytes,
+            )
+        )
+
+
 @router.post("/projects/{project_id}/notes")
 async def create_note(
     project_id: int,
@@ -88,17 +143,19 @@ async def create_note(
     quoted_content: Optional[str] = Form(None),
     mentions: Optional[List[int]] = Form(None),
     material_ids: List[int] = Form(default=[]),
-    file: Optional[UploadFile] = File(default=None),
+    files: List[UploadFile] = File(default=[]),
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
-    """Create a note in a project with optional file and member mentions."""
+    """Create a note in a project with optional files and member mentions."""
     user = _require_user(current_user)
     if isinstance(user, RedirectResponse):
         return user
 
     if not can_write_to_project(project_id, user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
+
+    file_payloads = await _read_validated_attachments(files)
 
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
@@ -136,23 +193,7 @@ async def create_note(
         flush=True,
     )
 
-    if file and file.filename:
-        file_bytes = await file.read()
-        if len(file_bytes) > settings.MAX_UPLOAD_BYTES:
-            raise HTTPException(
-                status_code=413,
-                detail=f"Файл превышает лимит {settings.MAX_UPLOAD_BYTES // 1048576}MB",
-            )
-        db.add(
-            NoteAttachment(
-                note_id=note.id,
-                filename=str(uuid4()),
-                original_filename=file.filename,
-                file_size=len(file_bytes),
-                content_type=file.content_type or "application/octet-stream",
-                file_data=file_bytes,
-            )
-        )
+    _add_attachments_from_payloads(note.id, file_payloads, db)
 
     for user_id in mention_ids:
         if user_id == user.id:
@@ -266,11 +307,11 @@ async def delete_note_api(
 @router.post("/notes/{note_id}/attachments")
 async def upload_attachment(
     note_id: int,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(default=[]),
     current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
-    """Upload a file attachment to a note."""
+    """Upload file attachments to a note."""
     user = _require_user(current_user)
     if isinstance(user, RedirectResponse):
         return user
@@ -281,22 +322,11 @@ async def upload_attachment(
     if not can_write_to_project(note.project_id, user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    file_bytes = await file.read()
-    if len(file_bytes) > settings.MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Файл превышает лимит {settings.MAX_UPLOAD_BYTES // 1048576}MB",
-        )
+    file_payloads = await _read_validated_attachments(files)
+    if not file_payloads:
+        raise HTTPException(status_code=400, detail="Выберите хотя бы один файл")
 
-    attachment = NoteAttachment(
-        note_id=note_id,
-        filename=str(uuid4()),
-        original_filename=file.filename or "file",
-        file_size=len(file_bytes),
-        content_type=file.content_type or "application/octet-stream",
-        file_data=file_bytes,
-    )
-    db.add(attachment)
+    _add_attachments_from_payloads(note_id, file_payloads, db)
     db.commit()
     return RedirectResponse(f"/projects/{note.project_id}", status_code=303)
 
