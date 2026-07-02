@@ -72,7 +72,7 @@
             {% if is_office %}
             <button
                 type="button"
-                onclick="openOfficeViewer('material_file', {{ file.id }})"
+                onclick="openOfficeViewer('material_file', {{ file.id }}, this)"
                 class="inline-flex items-center text-indigo-600 hover:text-indigo-800 flex-shrink-0"
                 title="Просмотр"
             >

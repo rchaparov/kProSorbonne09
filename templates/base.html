@@ -93,6 +93,7 @@
                             id="search-form"
                             action="/search"
                             method="get"
+                            data-no-loading
                             class="hidden absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[220px] sm:min-w-[280px]"
                         >
                             <input
@@ -152,8 +153,26 @@
         }
     });
 
-    async function openOfficeViewer(fileType, fileId) {
+    document.addEventListener('submit', function(e) {
+        const form = e.target.tagName === 'FORM' ? e.target : e.target.closest('form');
+        if (!form) return;
+        if (form.dataset.noLoading !== undefined) return;
+        if (form.dataset.confirm !== undefined) return;
+        const submitBtn = form.querySelector('[type="submit"]:not([data-no-loading])');
+        if (!submitBtn || submitBtn.disabled) return;
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<svg class="animate-spin w-4 h-4 inline mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Отправка...';
+        setTimeout(function() {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }, 10000);
+    });
+
+    async function openOfficeViewer(fileType, fileId, btnEl) {
         try {
+            if (btnEl) btnEl.disabled = true;
+
             const resp = await fetch('/files/temp', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -165,9 +184,20 @@
             }
             if (!resp.ok) throw new Error('Server error');
             const data = await resp.json();
-            window.open(data.viewer_url, '_blank', 'noopener,noreferrer');
+
+            const a = document.createElement('a');
+            a.href = data.viewer_url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         } catch (e) {
             alert('Не удалось открыть просмотрщик. Попробуйте скачать файл.');
+        } finally {
+            if (btnEl) {
+                btnEl.disabled = false;
+            }
         }
     }
 

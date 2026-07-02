@@ -57,7 +57,7 @@
     </div>
 </div>
 
-<div class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2 mb-4 bg-gray-50/90 backdrop-blur border-b border-gray-200">
+<div class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2 mb-4 bg-gray-50/90 backdrop-blur border-b border-gray-200" style="-webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);">
     <nav class="flex items-center gap-1 overflow-x-auto text-sm" aria-label="Разделы проекта">
         <a href="#section-checklist" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
@@ -162,7 +162,16 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-sm text-gray-500">Пунктов пока нет.</p>
+            {% if can_write %}
+            <div class="text-center py-8 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <p class="mt-2 text-sm">Нет пунктов. Добавьте первый.</p>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-400 text-sm">Пунктов пока нет.</div>
+            {% endif %}
             {% endif %}
 
             {% if can_write %}
@@ -246,6 +255,7 @@
                         class="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
                     ></textarea>
                 </div>
+                <p class="text-xs text-gray-400 mt-1"><span class="text-xs text-gray-400">Ctrl+Enter для отправки</span></p>
 
                 {% if all_materials %}
                 <details class="mt-2">
@@ -414,7 +424,7 @@
                                         {% elif office_viewer_enabled %}
                                         <button
                                             type="button"
-                                            onclick="openOfficeViewer('note_attachment', {{ attachment.id }})"
+                                            onclick="openOfficeViewer('note_attachment', {{ attachment.id }}, this)"
                                             class="inline-flex items-center text-indigo-600 hover:text-indigo-800 flex-shrink-0"
                                             title="Просмотр"
                                         >
@@ -558,9 +568,17 @@
             {% endif %}
 
             {% else %}
-            <div class="bg-white shadow rounded-lg p-6 text-sm text-gray-500">
-                Заметок пока нет.
+            {% if can_write %}
+            <div class="text-center py-12 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3 7.5V6.75" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9" />
+                </svg>
+                <p class="mt-2 text-sm">Нет заметок. Добавьте первую.</p>
             </div>
+            {% else %}
+            <div class="text-center py-12 text-gray-400 text-sm">Заметок пока нет.</div>
+            {% endif %}
             {% endif %}
             </div>
         </div>
@@ -854,6 +872,17 @@ document.addEventListener('click', function(e) {
     });
 
     textarea.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            hideDropdown();
+            form.requestSubmit();
+            return;
+        }
+        if (e.key === 'Escape' && !dropdown) {
+            cancelReply();
+            e.preventDefault();
+            return;
+        }
         if (!dropdown) return;
         if (e.key === 'Escape') {
             hideDropdown();
