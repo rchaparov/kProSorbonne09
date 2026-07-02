@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_unread_count, hash_password, require_admin
 from database import Project, ProjectMember, User, get_db_session
+from limiter import limiter
 from utils.nav import nav_context
 from utils.progress import PROJECT_STATUSES, PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS
 
@@ -114,6 +115,10 @@ async def admin_users_create(
     if isinstance(current_user, RedirectResponse):
         return current_user
 
+    username = username.strip()
+    full_name = full_name.strip()
+    business_role = business_role.strip()
+
     if len(password) < 6:
         return _redirect("/admin/users", error="password_short")
 
@@ -183,6 +188,10 @@ async def admin_users_edit(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    username = username.strip()
+    full_name = full_name.strip()
+    business_role = business_role.strip()
+
     existing = db.query(User).filter_by(username=username).first()
     if existing and existing.id != user_id:
         return _redirect(f"/admin/users/{user_id}/edit", error="username_exists")
@@ -218,8 +227,10 @@ async def admin_users_toggle(
 
 
 @router.post("/users/{user_id}/password")
+@limiter.limit("5/minute")
 async def admin_users_password(
     user_id: int,
+    request: Request,
     new_password: str = Form(...),
     current_user: Union[User, RedirectResponse] = Depends(require_admin),
     db: DbSession = Depends(get_db_session),

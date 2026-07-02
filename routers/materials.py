@@ -202,6 +202,9 @@ async def material_create(
 
     payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
 
+    title = title.strip()
+    description = description.strip()
+
     if category not in MATERIAL_CATEGORIES:
         category = "Другое"
 
@@ -272,6 +275,9 @@ async def material_edit(
         raise HTTPException(status_code=404, detail="Material not found")
     if not _can_delete_material(material, user):
         raise HTTPException(status_code=403, detail="Forbidden")
+
+    title = title.strip()
+    description = description.strip()
 
     material.title = title
     material.description = description or None

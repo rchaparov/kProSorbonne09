@@ -1,5 +1,7 @@
 """Authentication routes: login, logout, health check."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -7,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session as DbSession
 
 from auth import login_user, logout_user
-from database import get_db_session
+from database import Session as UserSession, User, get_db_session
 from limiter import limiter
 
 router = APIRouter(tags=["auth"])
@@ -15,8 +17,20 @@ templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/login")
-async def login_page(request: Request, error: str | None = None):
+async def login_page(
+    request: Request,
+    error: str | None = None,
+    db: DbSession = Depends(get_db_session),
+):
     """Render the login form."""
+    token = request.cookies.get("session_token")
+    if token:
+        session = db.query(UserSession).filter_by(token=token).first()
+        if session and session.expires_at >= datetime.utcnow():
+            user = db.query(User).filter_by(id=session.user_id).first()
+            if user and user.is_active:
+                return RedirectResponse("/", status_code=302)
+
     error = error or request.query_params.get("error")
     return templates.TemplateResponse(
         "login.html",

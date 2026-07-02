@@ -367,7 +367,9 @@ def init_database(database_url: str) -> None:
     """Initialize SQLAlchemy engine and session factory."""
     global _engine, SessionLocal
 
-    _engine = create_engine(database_url)
+    _engine = create_engine(
+        database_url, pool_pre_ping=True, pool_size=5, max_overflow=10
+    )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
 
 

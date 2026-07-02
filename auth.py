@@ -38,6 +38,8 @@ def login_user(username: str, password: str, db: DbSession) -> str | None:
     if not verify_password(password, user.password_hash):
         return None
 
+    db.query(UserSession).filter_by(user_id=user.id).delete()
+
     token = generate_token()
     expires_at = datetime.utcnow() + timedelta(hours=settings.SESSION_LIFETIME_HOURS)
     session = UserSession(user_id=user.id, token=token, expires_at=expires_at)

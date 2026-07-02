@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count, hash_password, verify_password
 from database import User, get_db_session
+from limiter import limiter
 from utils.nav import nav_context
 
 router = APIRouter(tags=["profile"])
@@ -37,6 +38,7 @@ async def profile_page(
 
 
 @router.post("/profile/password")
+@limiter.limit("5/minute")
 async def profile_change_password(
     request: Request,
     current_password: str = Form(...),

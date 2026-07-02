@@ -1,6 +1,5 @@
 """Note and attachment routes."""
 
-import sys
 from datetime import datetime
 from typing import List, Optional
 from urllib.parse import quote
@@ -21,6 +20,7 @@ from database import (
     NoteMention,
     Notification,
     Project,
+    ProjectMember,
     User,
     get_db_session,
 )
@@ -80,6 +80,23 @@ def _can_delete_note(note: Note, user: User) -> bool:
 def _can_edit_note(note: Note, user: User) -> bool:
     """Return True if the user may edit the given note."""
     return user.system_role == "admin" or note.author_id == user.id
+
+
+def _can_access_note_attachment(
+    attachment: NoteAttachment, user: User, db: DbSession
+) -> bool:
+    """Return True if the user may read a note attachment."""
+    note = db.query(Note).filter_by(id=attachment.note_id).first()
+    if not note:
+        return False
+    if user.system_role in ("admin", "coordinator"):
+        return True
+    return (
+        db.query(ProjectMember)
+        .filter_by(project_id=note.project_id, user_id=user.id)
+        .first()
+        is not None
+    )
 
 
 def _add_attachments_from_payloads(
@@ -150,12 +167,6 @@ async def create_note(
             mention_ids = [mentions]
         else:
             mention_ids = [int(m) for m in mentions]
-
-    print(
-        f"[DEBUG] create_note mentions={mention_ids} content_len={len(content)}",
-        file=sys.stderr,
-        flush=True,
-    )
 
     _add_attachments_from_payloads(note.id, file_payloads, db)
 
@@ -310,6 +321,8 @@ async def download_attachment(
     attachment = db.query(NoteAttachment).filter_by(id=attachment_id).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
+    if not _can_access_note_attachment(attachment, user, db):
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return Response(
         content=_attachment_bytes(attachment.file_data),
@@ -336,6 +349,8 @@ async def view_attachment(
     attachment = db.query(NoteAttachment).filter_by(id=attachment_id).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
+    if not _can_access_note_attachment(attachment, user, db):
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     return serve_file_for_view(
         _attachment_bytes(attachment.file_data),
