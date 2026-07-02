@@ -175,7 +175,7 @@ async def create_note(
             db.add(NoteMaterialLink(note_id=note.id, material_id=material_id))
 
     db.commit()
-    return RedirectResponse(f"/projects/{project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{project_id}#notes", status_code=303)
 
 
 @router.get("/notes/{note_id}/edit")
@@ -223,7 +223,7 @@ async def edit_note(
     note.content = content
     note.updated_at = datetime.utcnow()
     db.commit()
-    return RedirectResponse(f"/projects/{note.project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{note.project_id}#notes", status_code=303)
 
 
 @router.post("/notes/{note_id}/delete")
@@ -242,7 +242,7 @@ async def delete_note(
     project_id = note.project_id
     db.delete(note)
     db.commit()
-    return RedirectResponse(f"/projects/{project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{project_id}#notes", status_code=303)
 
 
 @router.delete("/notes/{note_id}")
@@ -275,7 +275,7 @@ async def upload_attachment(
 
     _add_attachments_from_payloads(note_id, file_payloads, db)
     db.commit()
-    return RedirectResponse(f"/projects/{note.project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{note.project_id}#notes", status_code=303)
 
 
 @router.get("/attachments/{attachment_id}/download")
@@ -340,7 +340,7 @@ async def delete_attachment(
     project_id = note.project_id
     db.delete(attachment)
     db.commit()
-    return RedirectResponse(f"/projects/{project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{project_id}#notes", status_code=303)
 
 
 @router.delete("/attachments/{attachment_id}")

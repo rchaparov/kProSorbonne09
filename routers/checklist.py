@@ -80,7 +80,7 @@ async def add_checklist_item(
             db.add(ChecklistItemAssignee(item_id=item.id, user_id=uid))
 
     db.commit()
-    return RedirectResponse(f"/projects/{project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{project_id}#checklist", status_code=303)
 
 
 @router.get("/checklist/{item_id}/edit")
@@ -158,7 +158,7 @@ async def edit_checklist_item(
             db.add(ChecklistItemAssignee(item_id=item.id, user_id=uid))
 
     db.commit()
-    return RedirectResponse(f"/projects/{item.project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{item.project_id}#checklist", status_code=303)
 
 
 @router.post("/checklist/{item_id}/toggle")
@@ -177,7 +177,7 @@ async def toggle_checklist_item(
     item.is_done = not item.is_done
     item.updated_at = datetime.utcnow()
     db.commit()
-    return RedirectResponse(f"/projects/{item.project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{item.project_id}#checklist", status_code=303)
 
 
 @router.post("/checklist/{item_id}/delete")
@@ -196,4 +196,4 @@ async def delete_checklist_item(
     project_id = item.project_id
     db.delete(item)
     db.commit()
-    return RedirectResponse(f"/projects/{project_id}", status_code=303)
+    return RedirectResponse(f"/projects/{project_id}#checklist", status_code=303)

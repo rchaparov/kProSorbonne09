@@ -18,9 +18,31 @@
     {% endif %}
 
     <div class="mt-4 flex flex-wrap items-center gap-2">
-        {% if project.deadline %}
+        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ status_colors.get(project.status, 'bg-gray-100 text-gray-700') }}">
+            {{ status_labels.get(project.status, project.status) }}
+        </span>
+
+        <span class="inline-flex items-center gap-1 text-sm text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+            </svg>
+            {{ members|length }}
+        </span>
+
+        {% if project.status == 'completed' %}
+            {% if project.deadline %}
+            <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                Сдан: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
+            </span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">Завершён</span>
+            {% endif %}
+        {% elif project.deadline %}
             {% if project.deadline < now %}
-            <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+            <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
                 Просрочен: <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
             </span>
             {% else %}
@@ -29,10 +51,6 @@
             </span>
             {% endif %}
         {% endif %}
-
-        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ status_colors.get(project.status, 'bg-gray-100 text-gray-700') }}">
-            {{ status_labels.get(project.status, project.status) }}
-        </span>
 
         <span class="text-sm text-gray-500">
             Создан: <time data-utc="{{ project.created_at.isoformat() }}">{{ project.created_at.strftime('%d.%m.%Y') }}</time>
@@ -57,180 +75,45 @@
     </div>
 </div>
 
-<div class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-2 mb-4 bg-gray-50/90 backdrop-blur border-b border-gray-200" style="-webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);">
-    <nav class="flex items-center gap-1 overflow-x-auto text-sm" aria-label="Разделы проекта">
-        <a href="#section-checklist" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            <span class="hidden lg:inline">Чеклист</span>
-            <span class="text-gray-400">({{ checklist_done }}/{{ checklist_total }})</span>
-        </a>
-        <a href="#section-members" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-            </svg>
-            <span class="hidden lg:inline">Участники</span>
-            <span class="text-gray-400">({{ members|length }})</span>
-        </a>
-        <a href="#section-notes" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
+<div class="bg-white shadow rounded-lg overflow-hidden">
+    <div class="flex border-b border-gray-200 overflow-x-auto tab-scroll" role="tablist">
+        <button type="button" data-tab="notes" class="tab-btn active flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
             </svg>
-            <span class="hidden lg:inline">Заметки</span>
-            <span class="text-gray-400">({{ total_roots }})</span>
-        </a>
-        <a href="#section-analytics" class="section-nav-link inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-gray-600 hover:bg-white hover:text-indigo-600">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0 lg:hidden" aria-hidden="true">
+            Обсуждение
+            <span class="tab-count">{{ total_roots }}</span>
+        </button>
+        <button type="button" data-tab="checklist" class="tab-btn flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            Чеклист
+            <span class="tab-count">{{ checklist_done }}/{{ checklist_total }}</span>
+        </button>
+        <button type="button" data-tab="materials" class="tab-btn flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+            </svg>
+            Материалы
+            <span class="tab-count">{{ project_materials|length }}</span>
+        </button>
+        <button type="button" data-tab="analytics" class="tab-btn flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
             </svg>
-            <span class="hidden lg:inline">Аналитика</span>
-        </a>
-    </nav>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <div class="lg:col-span-1 space-y-6 order-2 lg:order-none">
-        <div id="section-checklist" class="bg-white shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">
-                Чеклист
-                <span class="text-sm font-normal text-gray-500">({{ checklist_done }}/{{ checklist_total }})</span>
-            </h2>
-            {% if checklist_items %}
-            <div class="flex items-center justify-end mb-2">
-                <label class="inline-flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
-                    <input type="checkbox" id="hide-done-toggle" class="rounded border-gray-300 text-indigo-600">
-                    Скрыть выполненные
-                </label>
-            </div>
-            <div class="space-y-0">
-                {% for item in checklist_items %}
-                <div class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0" data-done="{{ item.is_done|lower }}">
-                    {% if can_write %}
-                    <form action="/checklist/{{ item.id }}/toggle" method="post" class="flex-shrink-0">
-                        <button type="submit" class="inline-flex items-center" title="{% if item.is_done %}Снять отметку{% else %}Выполнено{% endif %}">
-                            <input
-                                type="checkbox"
-                                {% if item.is_done %}checked{% endif %}
-                                readonly
-                                tabindex="-1"
-                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 pointer-events-none"
-                            >
-                        </button>
-                    </form>
-                    {% else %}
-                    <input
-                        type="checkbox"
-                        {% if item.is_done %}checked{% endif %}
-                        disabled
-                        class="rounded border-gray-300 text-indigo-600 flex-shrink-0"
-                    >
-                    {% endif %}
-                    <span class="text-sm flex-1 min-w-0 {% if item.is_done %}line-through text-gray-400{% else %}text-gray-700{% endif %}">
-                        {{ item.text }}
-                    </span>
-                    {% if item.assignees %}
-                    <span class="text-xs text-gray-400 flex-shrink-0">
-                        {%- for assignee in item.assignees -%}
-                        {%- if assignee.user -%}
-                        {{ assignee.user.full_name }}{% if not loop.last %}, {% endif %}
-                        {%- endif -%}
-                        {%- endfor -%}
-                    </span>
-                    {% endif %}
-                    {% if item.deadline %}
-                        {% if item.deadline.date() <= now.date() %}
-                        <span class="text-xs font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded flex-shrink-0">
-                            <time data-utc="{{ item.deadline.isoformat() }}">{{ item.deadline.strftime('%d.%m') }}</time>
-                        </span>
-                        {% else %}
-                        <span class="text-xs text-gray-400 flex-shrink-0">
-                            <time data-utc="{{ item.deadline.isoformat() }}">{{ item.deadline.strftime('%d.%m') }}</time>
-                        </span>
-                        {% endif %}
-                    {% endif %}
-                    {% if can_write and (current_user.system_role == 'admin' or current_user.id == item.created_by) %}
-                    <a href="/checklist/{{ item.id }}/edit"
-                        class="p-1 text-gray-400 hover:text-indigo-600 flex-shrink-0" title="Редактировать пункт">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                        </svg>
-                    </a>
-                    <form action="/checklist/{{ item.id }}/delete" method="post" data-confirm="Удалить пункт?" class="flex-shrink-0">
-                        <button type="submit" class="p-1 text-red-600 hover:text-red-800" title="Удалить пункт">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                            </svg>
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            {% if can_write %}
-            <div class="text-center py-8 text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
-                <p class="mt-2 text-sm">Нет пунктов. Добавьте первый.</p>
-            </div>
-            {% else %}
-            <div class="text-center py-8 text-gray-400 text-sm">Пунктов пока нет.</div>
-            {% endif %}
-            {% endif %}
-
-            {% if can_write %}
-            <form action="/projects/{{ project.id }}/checklist" method="post" class="mt-4 space-y-2">
-                <input
-                    type="text"
-                    name="text"
-                    required
-                    placeholder="Новый пункт..."
-                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
-                >
-                <select name="assigned_to" multiple
-                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 min-h-[80px]">
-                    {% for member in members %}
-                    <option value="{{ member.id }}">{{ member.full_name }}{% if member.business_role %} ({{ member.business_role }}){% endif %}</option>
-                    {% endfor %}
-                </select>
-                <p class="text-xs text-gray-400 mt-1">Удержите Ctrl (Cmd на Mac) для выбора нескольких</p>
-                <input type="date" name="deadline"
-                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600">
-                <p class="text-xs text-gray-400 mt-1">Дедлайн (необязательно)</p>
-                <button type="submit" class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
-                    Добавить
-                </button>
-            </form>
-            {% endif %}
-        </div>
-
-        <div id="section-members" class="bg-white shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Участники</h2>
-            {% if members %}
-            <ul class="space-y-3">
-                {% for member in members %}
-                <li class="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                    </svg>
-                    <div>
-                        <p class="text-sm font-medium text-gray-900">{{ member.full_name }}</p>
-                        {% if member.business_role %}
-                        <p class="text-xs text-gray-500">{{ member.business_role }}</p>
-                        {% endif %}
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-sm text-gray-500">Участников нет.</p>
-            {% endif %}
-        </div>
+            Аналитика
+        </button>
+        <button type="button" data-tab="members" class="tab-btn flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+            </svg>
+            Участники
+            <span class="tab-count">{{ members|length }}</span>
+        </button>
     </div>
 
-    <div id="section-notes" class="lg:col-span-2 space-y-6 order-1 lg:order-none">
+    <div class="tab-panel p-6" id="panel-notes">
         {% if can_write %}
         <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Добавить заметку</h2>
@@ -571,20 +454,20 @@
                 <span>Заметки {{ notes_from }}–{{ notes_to }} из {{ total_roots }}</span>
                 <div class="flex items-center gap-1">
                     {% if page > 1 %}
-                    <a href="/projects/{{ project.id }}?page={{ page - 1 }}" class="rounded-md border border-gray-300 px-2.5 py-1.5 hover:bg-gray-50" aria-label="Предыдущая страница">←</a>
+                    <a href="/projects/{{ project.id }}?page={{ page - 1 }}#notes" class="rounded-md border border-gray-300 px-2.5 py-1.5 hover:bg-gray-50" aria-label="Предыдущая страница">←</a>
                     {% endif %}
                     {% for p in page_numbers %}
                         {% if p == '...' %}
                         <span class="px-2 text-gray-400">…</span>
                         {% else %}
-                        <a href="/projects/{{ project.id }}?page={{ p }}"
+                        <a href="/projects/{{ project.id }}?page={{ p }}#notes"
                            class="rounded-md px-3 py-1.5 {% if p == page %}bg-indigo-600 text-white{% else %}border border-gray-300 hover:bg-gray-50{% endif %}">
                             {{ p }}
                         </a>
                         {% endif %}
                     {% endfor %}
                     {% if page < total_pages %}
-                    <a href="/projects/{{ project.id }}?page={{ page + 1 }}" class="rounded-md border border-gray-300 px-2.5 py-1.5 hover:bg-gray-50" aria-label="Следующая страница">→</a>
+                    <a href="/projects/{{ project.id }}?page={{ page + 1 }}#notes" class="rounded-md border border-gray-300 px-2.5 py-1.5 hover:bg-gray-50" aria-label="Следующая страница">→</a>
                     {% endif %}
                 </div>
             </div>
@@ -605,79 +488,253 @@
             {% endif %}
             </div>
         </div>
+    </div>
 
-        <div id="section-analytics" class="bg-white shadow rounded-lg p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Аналитика</h2>
-
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
-                <div class="rounded-lg bg-gray-50 p-3">
-                    <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Прогресс</p>
-                    <p style="font-size:22px;font-weight:500">{{ progress_pct }}%</p>
-                </div>
-                <div class="rounded-lg bg-gray-50 p-3">
-                    <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Всего заметок</p>
-                    <p style="font-size:22px;font-weight:500">{{ total_notes_count }}</p>
-                </div>
-                <div class="rounded-lg bg-gray-50 p-3">
-                    <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Дедлайн</p>
-                    {% if project.deadline %}
-                    <p style="font-size:14px;font-weight:500;line-height:1.3;{% if project.deadline < now %}color:#A32D2D{% endif %}">
-                        {% if project.deadline < now %}{{ deadline_days_label }}{% else %}{{ deadline_days_label }} дн.{% endif %}
-                    </p>
+    <div class="tab-panel hidden p-6" id="panel-checklist">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">
+            Чеклист
+            <span class="text-sm font-normal text-gray-500">({{ checklist_done }}/{{ checklist_total }})</span>
+        </h2>
+        {% if checklist_items %}
+        <div class="flex items-center justify-end mb-2">
+            <label class="inline-flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                <input type="checkbox" id="hide-done-toggle" class="rounded border-gray-300 text-indigo-600">
+                Скрыть выполненные
+            </label>
+        </div>
+        <div class="space-y-0">
+            {% for item in checklist_items %}
+            <div class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0" data-done="{{ item.is_done|lower }}">
+                {% if can_write %}
+                <form action="/checklist/{{ item.id }}/toggle" method="post" class="flex-shrink-0">
+                    <button type="submit" class="inline-flex items-center" title="{% if item.is_done %}Снять отметку{% else %}Выполнено{% endif %}">
+                        <input
+                            type="checkbox"
+                            {% if item.is_done %}checked{% endif %}
+                            readonly
+                            tabindex="-1"
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 pointer-events-none"
+                        >
+                    </button>
+                </form>
+                {% else %}
+                <input
+                    type="checkbox"
+                    {% if item.is_done %}checked{% endif %}
+                    disabled
+                    class="rounded border-gray-300 text-indigo-600 flex-shrink-0"
+                >
+                {% endif %}
+                <span class="text-sm flex-1 min-w-0 {% if item.is_done %}line-through text-gray-400{% else %}text-gray-700{% endif %}">
+                    {{ item.text }}
+                </span>
+                {% if item.assignees %}
+                <span class="text-xs text-gray-400 flex-shrink-0">
+                    {%- for assignee in item.assignees -%}
+                    {%- if assignee.user -%}
+                    {{ assignee.user.full_name }}{% if not loop.last %}, {% endif %}
+                    {%- endif -%}
+                    {%- endfor -%}
+                </span>
+                {% endif %}
+                {% if item.deadline %}
+                    {% if item.deadline.date() <= now.date() %}
+                    <span class="text-xs font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded flex-shrink-0">
+                        <time data-utc="{{ item.deadline.isoformat() }}">{{ item.deadline.strftime('%d.%m') }}</time>
+                    </span>
                     {% else %}
-                    <p style="font-size:22px;font-weight:500">—</p>
+                    <span class="text-xs text-gray-400 flex-shrink-0">
+                        <time data-utc="{{ item.deadline.isoformat() }}">{{ item.deadline.strftime('%d.%m') }}</time>
+                    </span>
+                    {% endif %}
+                {% endif %}
+                {% if can_write and (current_user.system_role == 'admin' or current_user.id == item.created_by) %}
+                <a href="/checklist/{{ item.id }}/edit"
+                    class="p-1 text-gray-400 hover:text-indigo-600 flex-shrink-0" title="Редактировать пункт">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                    </svg>
+                </a>
+                <form action="/checklist/{{ item.id }}/delete" method="post" data-confirm="Удалить пункт?" class="flex-shrink-0">
+                    <button type="submit" class="p-1 text-red-600 hover:text-red-800" title="Удалить пункт">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        {% if can_write %}
+        <div class="text-center py-8 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <p class="mt-2 text-sm">Нет пунктов. Добавьте первый.</p>
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-400 text-sm">Пунктов пока нет.</div>
+        {% endif %}
+        {% endif %}
+
+        {% if can_write %}
+        <form action="/projects/{{ project.id }}/checklist" method="post" class="mt-4 space-y-2">
+            <input
+                type="text"
+                name="text"
+                required
+                placeholder="Новый пункт..."
+                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+            >
+            <select name="assigned_to" multiple
+                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 min-h-[80px]">
+                {% for member in members %}
+                <option value="{{ member.id }}">{{ member.full_name }}{% if member.business_role %} ({{ member.business_role }}){% endif %}</option>
+                {% endfor %}
+            </select>
+            <p class="text-xs text-gray-400 mt-1">Удержите Ctrl (Cmd на Mac) для выбора нескольких</p>
+            <input type="date" name="deadline"
+                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600">
+            <p class="text-xs text-gray-400 mt-1">Дедлайн (необязательно)</p>
+            <button type="submit" class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                Добавить
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="tab-panel hidden p-6" id="panel-materials">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900">Материалы проекта</h2>
+            <a href="/materials" class="text-sm text-indigo-600 hover:text-indigo-800">Вся база знаний →</a>
+        </div>
+        {% if project_materials %}
+        <ul class="divide-y divide-gray-100">
+            {% for mat in project_materials %}
+            <li class="py-3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <a href="/materials?category={{ mat.category }}#material-{{ mat.id }}" class="text-sm font-medium text-gray-900 hover:text-indigo-600 truncate block">{{ mat.title }}</a>
+                    <span class="inline-flex mt-1 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{{ mat.category }}</span>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-gray-500">К заметкам проекта пока не прикреплено материалов из базы знаний.</p>
+        {% endif %}
+    </div>
+
+    <div class="tab-panel hidden p-6" id="panel-analytics">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Аналитика</h2>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+            <div class="rounded-lg bg-gray-50 p-3">
+                <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Прогресс</p>
+                <p style="font-size:22px;font-weight:500">{{ progress_pct }}%</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-3">
+                <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Всего заметок</p>
+                <p style="font-size:22px;font-weight:500">{{ total_notes_count }}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-3">
+                <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Дедлайн</p>
+                {% if project.status == 'completed' %}
+                <p style="font-size:14px;font-weight:500;line-height:1.3;color:#15803d">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:24px;height:24px;display:inline-block;vertical-align:middle" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                </p>
+                <p style="font-size:11px;color:#15803d;margin-top:4px">
+                    {% if project.deadline %}Сдан {{ project.deadline.strftime('%d.%m.%Y') }}{% else %}Завершён{% endif %}
+                </p>
+                {% elif project.deadline %}
+                    {% if project.deadline < now %}
+                    <p style="font-size:22px;font-weight:500;color:#b91c1c">{{ (now - project.deadline).days }} дн.</p>
+                    <p style="font-size:11px;color:#b91c1c;margin-top:4px">просрочен</p>
+                    {% else %}
+                    <p style="font-size:22px;font-weight:500">{{ (project.deadline - now).days }} дн.</p>
+                    <p style="font-size:11px;color:#9ca3af;margin-top:4px">до {{ project.deadline.strftime('%d.%m.%Y') }}</p>
+                    {% endif %}
+                {% else %}
+                <p style="font-size:22px;font-weight:500;color:#9ca3af">—</p>
+                <p style="font-size:11px;color:#9ca3af;margin-top:4px">не задан</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Активность заметок за 14 дней</h3>
+        <div style="display:flex;align-items:flex-end;gap:3px;height:40px;margin-bottom:16px">
+            {% for day in project_sparkline_data %}
+            {% set h = (day.count / project_sparkline_max * 100)|round|int %}
+            <div style="flex:1;border-radius:2px 2px 0 0;background:#378ADD;opacity:0.7;height:{{ [h, 5]|max }}%;min-height:2px;"
+                 title="{{ day.date.strftime('%d.%m') }}: {{ day.count }} заметок"></div>
+            {% endfor %}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:-12px;margin-bottom:16px">
+            <span style="font-size:10px;color:#9ca3af">{{ project_sparkline_data[0].date.strftime('%d.%m') }}</span>
+            <span style="font-size:10px;color:#9ca3af">{{ project_sparkline_data[-1].date.strftime('%d.%m') }}</span>
+        </div>
+
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Участие в проекте</h3>
+        {% if project_top_authors %}
+        <div class="space-y-2 mb-4">
+            {% for author, note_count in project_top_authors %}
+            {% set bar_w = (note_count / project_top_max * 100)|round|int %}
+            {% set parts = author.full_name.split() %}
+            <div class="flex items-center gap-2">
+                <span class="card-avatar flex-shrink-0" title="{{ author.full_name }}">
+                    {% if parts|length >= 2 %}{{ (parts[0][0] + parts[1][0])|upper }}{% else %}{{ parts[0][:2]|upper }}{% endif %}
+                </span>
+                <span class="text-xs text-gray-700 w-24 truncate flex-shrink-0">{{ author.full_name }}</span>
+                <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-0">
+                    <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ bar_w }}%"></div>
+                </div>
+                <span class="text-xs text-gray-500 w-6 text-right flex-shrink-0">{{ note_count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 mb-4">Нет заметок от участников</p>
+        {% endif %}
+
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Состояние чеклиста</h3>
+        <ul class="text-sm text-gray-600 space-y-1 mb-4">
+            <li>Выполнено: {{ checklist_done }}/{{ checklist_total }}</li>
+            <li>Просрочено: {{ checklist_overdue }}</li>
+            <li>Без ответственного: {{ checklist_unassigned }}</li>
+        </ul>
+
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Файлы</h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+            <li>Вложений в заметках: {{ attachments_count }}</li>
+            <li>Материалов из базы знаний: {{ materials_count }}</li>
+        </ul>
+    </div>
+
+    <div class="tab-panel hidden p-6" id="panel-members">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Участники</h2>
+        {% if members %}
+        <ul class="space-y-3">
+            {% for member in members %}
+            {% set parts = member.full_name.split() %}
+            <li class="flex items-center gap-3">
+                <span class="card-avatar flex-shrink-0" title="{{ member.full_name }}">
+                    {% if parts|length >= 2 %}{{ (parts[0][0] + parts[1][0])|upper }}{% else %}{{ parts[0][:2]|upper }}{% endif %}
+                </span>
+                <div>
+                    <p class="text-sm font-medium text-gray-900">{{ member.full_name }}</p>
+                    {% if member.business_role %}
+                    <p class="text-xs text-gray-500">{{ member.business_role }}</p>
                     {% endif %}
                 </div>
-            </div>
-
-            <h3 class="text-sm font-medium text-gray-700 mb-2">Активность заметок за 14 дней</h3>
-            <div style="display:flex;align-items:flex-end;gap:3px;height:40px;margin-bottom:16px">
-                {% for day in project_sparkline_data %}
-                {% set h = (day.count / project_sparkline_max * 100)|round|int %}
-                <div style="flex:1;border-radius:2px 2px 0 0;background:#378ADD;opacity:0.7;height:{{ [h, 5]|max }}%;min-height:2px;"
-                     title="{{ day.date.strftime('%d.%m') }}: {{ day.count }} заметок"></div>
-                {% endfor %}
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:-12px;margin-bottom:16px">
-                <span style="font-size:10px;color:#9ca3af">{{ project_sparkline_data[0].date.strftime('%d.%m') }}</span>
-                <span style="font-size:10px;color:#9ca3af">{{ project_sparkline_data[-1].date.strftime('%d.%m') }}</span>
-            </div>
-
-            <h3 class="text-sm font-medium text-gray-700 mb-2">Участие в проекте</h3>
-            {% if project_top_authors %}
-            <div class="space-y-2 mb-4">
-                {% for author, note_count in project_top_authors %}
-                {% set bar_w = (note_count / project_top_max * 100)|round|int %}
-                {% set parts = author.full_name.split() %}
-                <div class="flex items-center gap-2">
-                    <span class="card-avatar flex-shrink-0" title="{{ author.full_name }}">
-                        {% if parts|length >= 2 %}{{ (parts[0][0] + parts[1][0])|upper }}{% else %}{{ parts[0][:2]|upper }}{% endif %}
-                    </span>
-                    <span class="text-xs text-gray-700 w-24 truncate flex-shrink-0">{{ author.full_name }}</span>
-                    <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-0">
-                        <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ bar_w }}%"></div>
-                    </div>
-                    <span class="text-xs text-gray-500 w-6 text-right flex-shrink-0">{{ note_count }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-sm text-gray-400 mb-4">Нет заметок от участников</p>
-            {% endif %}
-
-            <h3 class="text-sm font-medium text-gray-700 mb-2">Состояние чеклиста</h3>
-            <ul class="text-sm text-gray-600 space-y-1 mb-4">
-                <li>Выполнено: {{ checklist_done }}/{{ checklist_total }}</li>
-                <li>Просрочено: {{ checklist_overdue }}</li>
-                <li>Без ответственного: {{ checklist_unassigned }}</li>
-            </ul>
-
-            <h3 class="text-sm font-medium text-gray-700 mb-2">Файлы</h3>
-            <ul class="text-sm text-gray-600 space-y-1">
-                <li>Вложений в заметках: {{ attachments_count }}</li>
-                <li>Материалов из базы знаний: {{ materials_count }}</li>
-            </ul>
-        </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-gray-500">Участников нет.</p>
+        {% endif %}
     </div>
 </div>
 
@@ -1087,6 +1144,7 @@ document.addEventListener('click', function(e) {
     const banner = document.getElementById('new-notes-banner');
 
     async function pollNotes() {
+        if (window.activeProjectTab && window.activeProjectTab !== 'notes') return;
         if (document.visibilityState === 'hidden') return;
         try {
             const resp = await fetch(
@@ -1139,17 +1197,35 @@ document.addEventListener('click', function(e) {
 </button>
 
 <script>
-document.querySelectorAll('.section-nav-link').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            const offset = 70;
-            const top = target.getBoundingClientRect().top + window.scrollY - offset;
-            window.scrollTo({ top: top, behavior: 'smooth' });
-        }
+(function() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.tab-panel');
+    const validTabs = ['notes', 'checklist', 'materials', 'analytics', 'members'];
+
+    function activate(tabName) {
+        if (!validTabs.includes(tabName)) tabName = 'notes';
+        tabs.forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+        panels.forEach(function(panel) {
+            panel.classList.toggle('hidden', panel.id !== 'panel-' + tabName);
+        });
+        window.activeProjectTab = tabName;
+    }
+
+    tabs.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            history.replaceState(null, '', '#' + this.dataset.tab);
+            activate(this.dataset.tab);
+        });
     });
-});
+
+    window.addEventListener('hashchange', function() {
+        activate((location.hash || '#notes').substring(1));
+    });
+
+    activate((location.hash || '#notes').substring(1));
+})();
 
 (function() {
     const btn = document.getElementById('scroll-top-btn');

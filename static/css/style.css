@@ -317,3 +317,35 @@ textarea.drop-zone.drag-over {
         padding-bottom: 5rem !important;
     }
 }
+
+.tab-btn {
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+}
+.tab-btn:hover {
+    background-color: #f9fafb;
+}
+.tab-btn.active {
+    color: #4f46e5;
+    border-bottom-color: #4f46e5;
+    background-color: #eef2ff;
+}
+.tab-count {
+    font-size: 11px;
+    background: #f3f4f6;
+    color: #6b7280;
+    border-radius: 99px;
+    padding: 1px 7px;
+    font-weight: 500;
+}
+.tab-btn.active .tab-count {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+.tab-scroll {
+    scrollbar-width: none;
+}
+.tab-scroll::-webkit-scrollbar {
+    display: none;
+}

@@ -236,13 +236,15 @@ async def project_detail(
         .scalar()
     ) or 0
 
-    if project.deadline:
-        if project.deadline < now:
-            deadline_days_label = f"просрочен на {(now - project.deadline).days} дн."
-        else:
-            deadline_days_label = str((project.deadline - now).days)
-    else:
-        deadline_days_label = None
+    project_materials = (
+        db.query(Material)
+        .join(NoteMaterialLink, NoteMaterialLink.material_id == Material.id)
+        .join(Note, Note.id == NoteMaterialLink.note_id)
+        .filter(Note.project_id == project_id)
+        .distinct()
+        .order_by(Material.category, Material.title)
+        .all()
+    )
 
     return templates.TemplateResponse(
         "project_detail.html",
@@ -281,7 +283,7 @@ async def project_detail(
             "attachments_count": attachments_count,
             "materials_count": materials_count,
             "total_notes_count": total_notes_count,
-            "deadline_days_label": deadline_days_label,
+            "project_materials": project_materials,
             **nav_context(current_user, db, project_id),
         },
     )
