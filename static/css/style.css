@@ -98,6 +98,10 @@ textarea.drop-zone.drag-over {
 }
 
 .project-card {
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
     background: white;
     border: 0.5px solid #e5e7eb;
     border-radius: 12px;
@@ -270,6 +274,12 @@ textarea.drop-zone.drag-over {
     z-index: 40;
 }
 
+@media (min-width: 768px) {
+    .bottom-nav {
+        display: none !important;
+    }
+}
+
 .bottom-nav-item {
     display: flex;
     flex-direction: column;
@@ -300,4 +310,10 @@ textarea.drop-zone.drag-over {
     background: #e24b4a;
     border-radius: 50%;
     border: 1.5px solid white;
+}
+
+@media (max-width: 767px) {
+    main {
+        padding-bottom: 5rem !important;
+    }
 }
