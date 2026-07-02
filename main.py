@@ -8,9 +8,19 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi.errors import RateLimitExceeded
 
+from auth import _RedirectException
 from config import settings, validate_settings
 from database import Session as UserSession, SessionLocal, TempFileToken, init_database
 from limiter import limiter
+
+validate_settings()
+
+app = FastAPI(title="K-PRO Sorbonne 09 TeamSpace", docs_url=None, redoc_url=None)
+app.state.limiter = limiter
+templates = Jinja2Templates(directory="templates")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 from routers.admin import router as admin_router
 from routers.analytics import router as analytics_router
 from routers.auth_router import router as auth_router
@@ -25,14 +35,6 @@ from routers.profile import router as profile_router
 from routers.projects import router as projects_router
 from routers.search import router as search_router
 
-validate_settings()
-
-app = FastAPI(title="K-PRO Sorbonne 09 TeamSpace", docs_url=None, redoc_url=None)
-app.state.limiter = limiter
-templates = Jinja2Templates(directory="templates")
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(analytics_router)
@@ -46,6 +48,12 @@ app.include_router(notifications_router)
 app.include_router(materials_router)
 app.include_router(search_router)
 app.include_router(files_temp_router)
+
+
+@app.exception_handler(_RedirectException)
+async def redirect_handler(request: Request, exc: _RedirectException):
+    """Redirect unauthenticated HTML requests to login."""
+    return RedirectResponse(exc.url, status_code=302)
 
 
 @app.exception_handler(RateLimitExceeded)

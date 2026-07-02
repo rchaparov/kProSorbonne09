@@ -3,8 +3,6 @@
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession
 
@@ -18,11 +16,11 @@ from database import (
     User,
     get_db_session,
 )
-from utils.progress import PROJECT_STATUS_LABELS, project_progress
+from main import templates
 from utils.nav import nav_context
+from utils.progress import PROJECT_STATUS_LABELS, project_progress
 
 router = APIRouter(tags=["analytics"])
-templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/analytics")
@@ -32,9 +30,6 @@ async def analytics_page(
     db: DbSession = Depends(get_db_session),
 ):
     """Render aggregated team analytics for all authenticated users."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     now = datetime.utcnow()
 
     status_rows = (
@@ -88,19 +83,25 @@ async def analytics_page(
     active_projects = [
         project for project in db.query(Project).all() if project.status != "completed"
     ]
-    progresses = []
-    for project in active_projects:
-        total = (
-            db.query(func.count(ChecklistItem.id))
-            .filter_by(project_id=project.id)
-            .scalar()
-        ) or 0
-        done = (
-            db.query(func.count(ChecklistItem.id))
-            .filter_by(project_id=project.id, is_done=True)
-            .scalar()
-        ) or 0
-        progresses.append(project_progress(project.status, done, total))
+    checklist_totals = dict(
+        db.query(ChecklistItem.project_id, func.count(ChecklistItem.id))
+        .group_by(ChecklistItem.project_id)
+        .all()
+    )
+    checklist_dones = dict(
+        db.query(ChecklistItem.project_id, func.count(ChecklistItem.id))
+        .filter(ChecklistItem.is_done.is_(True))
+        .group_by(ChecklistItem.project_id)
+        .all()
+    )
+    progresses = [
+        project_progress(
+            project.status,
+            checklist_dones.get(project.id, 0),
+            checklist_totals.get(project.id, 0),
+        )
+        for project in active_projects
+    ]
     avg_progress = round(sum(progresses) / len(progresses)) if progresses else 0
 
     week_ago = now - timedelta(days=7)

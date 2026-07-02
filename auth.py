@@ -4,15 +4,20 @@ from __future__ import annotations
 
 import secrets
 from datetime import datetime, timedelta
-from typing import Union
 
 import bcrypt
 from fastapi import Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session as DbSession
 
 from config import settings
 from database import ProjectMember, Session as UserSession, User, Notification, get_db_session
+
+
+class _RedirectException(Exception):
+    """Signal that the client should be redirected to a URL."""
+
+    def __init__(self, url: str) -> None:
+        self.url = url
 
 
 def generate_token(n: int = 64) -> str:
@@ -59,47 +64,37 @@ def logout_user(token: str, db: DbSession) -> None:
 def get_current_user(
     request: Request,
     db: DbSession = Depends(get_db_session),
-) -> Union[User, RedirectResponse]:
+) -> User:
     """Resolve the current user from the session cookie or redirect to login."""
     token = request.cookies.get("session_token")
     if not token:
-        return RedirectResponse("/login", status_code=302)
+        raise _RedirectException("/login")
 
     session = db.query(UserSession).filter_by(token=token).first()
     if not session or session.expires_at < datetime.utcnow():
-        return RedirectResponse("/login", status_code=302)
+        raise _RedirectException("/login")
 
     user = db.query(User).filter_by(id=session.user_id).first()
     if not user or not user.is_active:
-        return RedirectResponse("/login", status_code=302)
+        raise _RedirectException("/login")
 
     return user
 
 
-def require_authenticated(
-    user: Union[User, RedirectResponse] = Depends(get_current_user),
-) -> Union[User, RedirectResponse]:
+def require_authenticated(user: User = Depends(get_current_user)) -> User:
     """Require any authenticated active user."""
     return user
 
 
-def require_admin(
-    user: Union[User, RedirectResponse] = Depends(get_current_user),
-) -> Union[User, RedirectResponse]:
+def require_admin(user: User = Depends(get_current_user)) -> User:
     """Require an admin user."""
-    if isinstance(user, RedirectResponse):
-        return user
     if user.system_role != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
     return user
 
 
-def require_coordinator_or_admin(
-    user: Union[User, RedirectResponse] = Depends(get_current_user),
-) -> Union[User, RedirectResponse]:
+def require_coordinator_or_admin(user: User = Depends(get_current_user)) -> User:
     """Require a coordinator or admin user."""
-    if isinstance(user, RedirectResponse):
-        return user
     if user.system_role not in ("admin", "coordinator"):
         raise HTTPException(status_code=403, detail="Forbidden")
     return user

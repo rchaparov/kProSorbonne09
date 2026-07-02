@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession
 
 from auth import can_write_to_project, get_current_user, get_unread_count
@@ -24,13 +23,12 @@ from database import (
     User,
     get_db_session,
 )
-
+from main import templates
 from utils.file_viewer import serve_file_for_view
 from utils.nav import nav_context
 from utils.uploads import read_validated_files
 
 router = APIRouter(tags=["notes"])
-templates = Jinja2Templates(directory="templates")
 
 INLINE_TYPES = {
     "application/pdf",
@@ -63,13 +61,6 @@ def _attachment_bytes(file_data) -> bytes:
     if isinstance(file_data, bytes):
         return file_data
     return bytes(file_data)
-
-
-def _require_user(current_user) -> User:
-    """Ensure the dependency resolved to an authenticated user."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-    return current_user
 
 
 def _can_delete_note(note: Note, user: User) -> bool:
@@ -129,11 +120,7 @@ async def create_note(
     db: DbSession = Depends(get_db_session),
 ):
     """Create a note in a project with optional files and member mentions."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
-    if not can_write_to_project(project_id, user, db):
+    if not can_write_to_project(project_id, current_user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     file_payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
@@ -153,7 +140,7 @@ async def create_note(
 
     note = Note(
         project_id=project_id,
-        author_id=user.id,
+        author_id=current_user.id,
         content=content,
         parent_id=validated_parent_id,
         quoted_content=quoted_content[:300] if quoted_content else None,
@@ -171,7 +158,7 @@ async def create_note(
     _add_attachments_from_payloads(note.id, file_payloads, db)
 
     for user_id in mention_ids:
-        if user_id == user.id:
+        if user_id == current_user.id:
             continue
         db.add(NoteMention(note_id=note.id, user_id=user_id))
         db.add(
@@ -179,7 +166,7 @@ async def create_note(
                 user_id=user_id,
                 note_id=note.id,
                 project_id=project_id,
-                message=f"{user.full_name} упомянул вас в проекте «{project.title}»",
+                message=f"{current_user.full_name} упомянул вас в проекте «{project.title}»",
             )
         )
 
@@ -199,14 +186,10 @@ async def edit_note_form(
     db: DbSession = Depends(get_db_session),
 ):
     """Render the note edit form for author or admin."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     note = db.query(Note).filter_by(id=note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if not _can_edit_note(note, user):
+    if not _can_edit_note(note, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     project = db.query(Project).filter_by(id=note.project_id).first()
@@ -214,11 +197,11 @@ async def edit_note_form(
         "note_edit.html",
         {
             "request": request,
-            "current_user": user,
+            "current_user": current_user,
             "note": note,
             "project": project,
-            "unread_count": get_unread_count(user, db),
-            **nav_context(user, db, note.project_id),
+            "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db, note.project_id),
         },
     )
 
@@ -231,14 +214,10 @@ async def edit_note(
     db: DbSession = Depends(get_db_session),
 ):
     """Update note content and redirect to the project page."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     note = db.query(Note).filter_by(id=note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if not _can_edit_note(note, user):
+    if not _can_edit_note(note, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     note.content = content
@@ -254,14 +233,10 @@ async def delete_note(
     db: DbSession = Depends(get_db_session),
 ):
     """Delete a note and its attachments, then redirect to the project page."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     note = db.query(Note).filter_by(id=note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if not _can_delete_note(note, user):
+    if not _can_delete_note(note, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     project_id = note.project_id
@@ -288,14 +263,10 @@ async def upload_attachment(
     db: DbSession = Depends(get_db_session),
 ):
     """Upload file attachments to a note."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     note = db.query(Note).filter_by(id=note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if not can_write_to_project(note.project_id, user, db):
+    if not can_write_to_project(note.project_id, current_user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     file_payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
@@ -314,14 +285,10 @@ async def download_attachment(
     db: DbSession = Depends(get_db_session),
 ):
     """Download a note attachment."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     attachment = db.query(NoteAttachment).filter_by(id=attachment_id).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
-    if not _can_access_note_attachment(attachment, user, db):
+    if not _can_access_note_attachment(attachment, current_user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     return Response(
@@ -342,14 +309,10 @@ async def view_attachment(
     db: DbSession = Depends(get_db_session),
 ):
     """View a note attachment inline when supported by the browser."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     attachment = db.query(NoteAttachment).filter_by(id=attachment_id).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
-    if not _can_access_note_attachment(attachment, user, db):
+    if not _can_access_note_attachment(attachment, current_user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     return serve_file_for_view(
@@ -366,16 +329,12 @@ async def delete_attachment(
     db: DbSession = Depends(get_db_session),
 ):
     """Delete a note attachment and redirect to the project page."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     attachment = db.query(NoteAttachment).filter_by(id=attachment_id).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
 
     note = db.query(Note).filter_by(id=attachment.note_id).first()
-    if not note or not _can_delete_note(note, user):
+    if not note or not _can_delete_note(note, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     project_id = note.project_id

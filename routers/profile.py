@@ -2,16 +2,15 @@
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count, hash_password, verify_password
 from database import User, get_db_session
 from limiter import limiter
+from main import templates
 from utils.nav import nav_context
 
 router = APIRouter(tags=["profile"])
-templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/profile")
@@ -21,9 +20,6 @@ async def profile_page(
     db: DbSession = Depends(get_db_session),
 ):
     """Render the user profile and password change form."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     return templates.TemplateResponse(
         "profile.html",
         {
@@ -48,9 +44,6 @@ async def profile_change_password(
     db: DbSession = Depends(get_db_session),
 ):
     """Change the authenticated user's password."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     if not verify_password(current_password, current_user.password_hash):
         return RedirectResponse("/profile?error=wrong_password", status_code=303)
     if len(new_password) < 6:

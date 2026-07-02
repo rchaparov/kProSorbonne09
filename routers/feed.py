@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_current_user
@@ -69,9 +69,6 @@ async def notes_feed(
     db: DbSession = Depends(get_db_session),
 ):
     """Return new root notes and replies on page 1 created after the given timestamp."""
-    if isinstance(current_user, RedirectResponse):
-        return JSONResponse({"notes": [], "count": 0, "latest_at": None})
-
     if page != 1:
         return JSONResponse({"notes": [], "count": 0, "latest_at": None})
 

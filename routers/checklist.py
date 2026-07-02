@@ -5,7 +5,6 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession, joinedload
 
@@ -18,17 +17,11 @@ from database import (
     User,
     get_db_session,
 )
+from main import templates
+from utils.date_utils import parse_deadline
 from utils.nav import nav_context
 
 router = APIRouter(tags=["checklist"])
-templates = Jinja2Templates(directory="templates")
-
-
-def _require_user(current_user) -> User:
-    """Return authenticated user or redirect response."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-    return current_user
 
 
 def _parse_assignee_ids(assigned_to: Optional[List[int]]) -> List[int]:
@@ -38,16 +31,6 @@ def _parse_assignee_ids(assigned_to: Optional[List[int]]) -> List[int]:
     if isinstance(assigned_to, int):
         return [assigned_to]
     return [int(uid) for uid in assigned_to]
-
-
-def _parse_deadline(value: Optional[str]) -> Optional[datetime]:
-    """Parse HTML date input into a datetime."""
-    if not value:
-        return None
-    try:
-        return datetime.strptime(value, "%Y-%m-%d")
-    except ValueError:
-        return None
 
 
 def _can_edit_item(item: ChecklistItem, user: User) -> bool:
@@ -65,11 +48,7 @@ async def add_checklist_item(
     db: DbSession = Depends(get_db_session),
 ):
     """Add a checklist item to a project."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
-    if not can_write_to_project(project_id, user, db):
+    if not can_write_to_project(project_id, current_user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     project = db.query(Project).filter_by(id=project_id).first()
@@ -85,9 +64,9 @@ async def add_checklist_item(
     item = ChecklistItem(
         project_id=project_id,
         text=text.strip(),
-        created_by=user.id,
+        created_by=current_user.id,
         position=max_pos + 1,
-        deadline=_parse_deadline(deadline),
+        deadline=parse_deadline(deadline),
     )
     db.add(item)
     db.flush()
@@ -97,7 +76,7 @@ async def add_checklist_item(
         for row in db.query(ProjectMember.user_id).filter_by(project_id=project_id).all()
     }
     for uid in set(_parse_assignee_ids(assigned_to)):
-        if uid in valid_member_ids or user.system_role == "admin":
+        if uid in valid_member_ids or current_user.system_role == "admin":
             db.add(ChecklistItemAssignee(item_id=item.id, user_id=uid))
 
     db.commit()
@@ -112,10 +91,6 @@ async def edit_checklist_item_form(
     db: DbSession = Depends(get_db_session),
 ):
     """Render the checklist item edit form."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     item = (
         db.query(ChecklistItem)
         .options(joinedload(ChecklistItem.assignees))
@@ -124,7 +99,7 @@ async def edit_checklist_item_form(
     )
     if not item:
         raise HTTPException(status_code=404, detail="Checklist item not found")
-    if not _can_edit_item(item, user):
+    if not _can_edit_item(item, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     project = db.query(Project).filter_by(id=item.project_id).first()
@@ -140,13 +115,13 @@ async def edit_checklist_item_form(
         "checklist_edit.html",
         {
             "request": request,
-            "current_user": user,
+            "current_user": current_user,
             "item": item,
             "project": project,
             "members": members,
             "current_assignee_ids": current_assignee_ids,
-            "unread_count": get_unread_count(user, db),
-            **nav_context(user, db, item.project_id),
+            "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db, item.project_id),
         },
     )
 
@@ -161,19 +136,15 @@ async def edit_checklist_item(
     db: DbSession = Depends(get_db_session),
 ):
     """Update checklist item text, assignees, and deadline."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     item = db.query(ChecklistItem).filter_by(id=item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Checklist item not found")
-    if not _can_edit_item(item, user):
+    if not _can_edit_item(item, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     item.text = text.strip()
     item.updated_at = datetime.utcnow()
-    item.deadline = _parse_deadline(deadline)
+    item.deadline = parse_deadline(deadline)
 
     db.query(ChecklistItemAssignee).filter_by(item_id=item_id).delete()
     db.flush()
@@ -183,7 +154,7 @@ async def edit_checklist_item(
         for row in db.query(ProjectMember.user_id).filter_by(project_id=item.project_id).all()
     }
     for uid in set(_parse_assignee_ids(assigned_to)):
-        if uid in valid_member_ids or user.system_role == "admin":
+        if uid in valid_member_ids or current_user.system_role == "admin":
             db.add(ChecklistItemAssignee(item_id=item.id, user_id=uid))
 
     db.commit()
@@ -197,14 +168,10 @@ async def toggle_checklist_item(
     db: DbSession = Depends(get_db_session),
 ):
     """Toggle checklist item done state."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     item = db.query(ChecklistItem).filter_by(id=item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Checklist item not found")
-    if not can_write_to_project(item.project_id, user, db):
+    if not can_write_to_project(item.project_id, current_user, db):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     item.is_done = not item.is_done
@@ -220,14 +187,10 @@ async def delete_checklist_item(
     db: DbSession = Depends(get_db_session),
 ):
     """Delete a checklist item if permitted."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     item = db.query(ChecklistItem).filter_by(id=item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Checklist item not found")
-    if not _can_edit_item(item, user):
+    if not _can_edit_item(item, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     project_id = item.project_id

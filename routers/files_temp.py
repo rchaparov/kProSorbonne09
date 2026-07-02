@@ -1,18 +1,17 @@
 """Temporary public file tokens for Office Online Viewer."""
 
 from datetime import datetime, timedelta
-from typing import Union
 from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user
 from config import settings
-from database import MaterialFile, NoteAttachment, TempFileToken, User, get_db_session
+from database import MaterialFile, NoteAttachment, TempFileToken, get_db_session
 
 router = APIRouter(tags=["files_temp"])
 
@@ -52,12 +51,10 @@ def _load_file(file_type: str, file_id: int, db: DbSession):
 @router.post("/files/temp")
 async def create_temp_token(
     body: TempTokenRequest,
-    current_user: Union[User, RedirectResponse] = Depends(get_current_user),
+    current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
     """Create a short-lived public token for Office Online Viewer."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
     if not settings.BASE_URL:
         raise HTTPException(status_code=503, detail="Office viewer not configured")
 

@@ -5,8 +5,6 @@ from collections import defaultdict
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession, joinedload
 
@@ -30,9 +28,9 @@ from utils.progress import (
 )
 from utils.nav import nav_context
 from utils.pagination import paginate_range
+from main import templates
 
 router = APIRouter(tags=["projects"])
-templates = Jinja2Templates(directory="templates")
 
 PAGE_SIZE = 20
 
@@ -45,9 +43,6 @@ async def project_detail(
     db: DbSession = Depends(get_db_session),
 ):
     """Render project details, members, and notes feed."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")

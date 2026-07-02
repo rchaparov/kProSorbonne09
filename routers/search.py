@@ -1,19 +1,15 @@
 """Global search routes."""
 
-from typing import Union
-
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import or_
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_current_user, get_unread_count
 from database import Material, Note, Project, ProjectMember, User, get_db_session
+from main import templates
 from utils.nav import nav_context
 
 router = APIRouter(tags=["search"])
-templates = Jinja2Templates(directory="templates")
 
 
 def _accessible_project_ids(user: User, db: DbSession) -> list[int] | None:
@@ -28,13 +24,10 @@ def _accessible_project_ids(user: User, db: DbSession) -> list[int] | None:
 async def search(
     request: Request,
     q: str = "",
-    current_user: Union[User, RedirectResponse] = Depends(get_current_user),
+    current_user=Depends(get_current_user),
     db: DbSession = Depends(get_db_session),
 ):
     """Search projects, notes, and materials."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     query = q.strip()
     results = {"projects": [], "notes": [], "materials": []}
 

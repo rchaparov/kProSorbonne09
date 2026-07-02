@@ -1,22 +1,21 @@
 """Admin panel routes."""
 
 from datetime import datetime
-from typing import Union
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession, joinedload
 
 from auth import get_unread_count, hash_password, require_admin
 from database import Project, ProjectMember, User, get_db_session
 from limiter import limiter
+from main import templates
+from utils.date_utils import parse_deadline
 from utils.nav import nav_context
 from utils.progress import PROJECT_STATUSES, PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-templates = Jinja2Templates(directory="templates")
 
 SYSTEM_ROLES = ("admin", "coordinator", "member")
 
@@ -60,23 +59,13 @@ def _redirect(path: str, msg: str | None = None, error: str | None = None) -> Re
     return RedirectResponse(url, status_code=303)
 
 
-def _parse_deadline(value: str | None) -> datetime | None:
-    """Parse HTML date input into a datetime."""
-    if not value:
-        return None
-    return datetime.strptime(value, "%Y-%m-%d")
-
-
 @router.get("/")
 async def admin_index(
     request: Request,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Render admin panel home with section links."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     return templates.TemplateResponse(
         "admin/index.html",
         _template_context(request, current_user, db=db),
@@ -86,13 +75,10 @@ async def admin_index(
 @router.get("/users")
 async def admin_users(
     request: Request,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """List all users and show the create-user form."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     users = db.query(User).order_by(User.created_at.desc()).all()
     return templates.TemplateResponse(
         "admin/users.html",
@@ -108,13 +94,10 @@ async def admin_users_create(
     business_role: str = Form(""),
     system_role: str = Form(...),
     password: str = Form(...),
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Create a new user."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     username = username.strip()
     full_name = full_name.strip()
     business_role = business_role.strip()
@@ -145,13 +128,10 @@ async def admin_users_create(
 async def admin_users_edit_form(
     user_id: int,
     request: Request,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Render the user edit form."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     user = db.query(User).filter_by(id=user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -177,13 +157,10 @@ async def admin_users_edit(
     full_name: str = Form(...),
     business_role: str = Form(""),
     system_role: str = Form(...),
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Update an existing user."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     user = db.query(User).filter_by(id=user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -210,13 +187,10 @@ async def admin_users_edit(
 @router.post("/users/{user_id}/toggle")
 async def admin_users_toggle(
     user_id: int,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Toggle user active status."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     user = db.query(User).filter_by(id=user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -232,13 +206,10 @@ async def admin_users_password(
     user_id: int,
     request: Request,
     new_password: str = Form(...),
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Change a user's password."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     if len(new_password) < 6:
         return _redirect("/admin/users", error="password_short")
 
@@ -254,13 +225,10 @@ async def admin_users_password(
 @router.get("/projects")
 async def admin_projects(
     request: Request,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """List all projects."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     projects = db.query(Project).order_by(Project.created_at.desc()).all()
     member_counts = dict(
         db.query(ProjectMember.project_id, func.count(ProjectMember.id))
@@ -286,17 +254,14 @@ async def admin_projects_create(
     description: str = Form(""),
     deadline: str = Form(""),
     status: str = Form("planning"),
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Create a new project."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     project = Project(
         title=title,
         description=description or None,
-        deadline=_parse_deadline(deadline),
+        deadline=parse_deadline(deadline),
         status=status if status in PROJECT_STATUSES else "planning",
         created_by=current_user.id,
     )
@@ -309,13 +274,10 @@ async def admin_projects_create(
 async def admin_projects_edit_form(
     project_id: int,
     request: Request,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Render the project edit form."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -341,20 +303,17 @@ async def admin_projects_edit(
     description: str = Form(""),
     deadline: str = Form(""),
     status: str = Form("planning"),
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Update an existing project."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
     project.title = title
     project.description = description or None
-    project.deadline = _parse_deadline(deadline)
+    project.deadline = parse_deadline(deadline)
     project.status = status if status in PROJECT_STATUSES else project.status
     project.updated_at = datetime.utcnow()
     db.commit()
@@ -364,18 +323,21 @@ async def admin_projects_edit(
 @router.post("/projects/{project_id}/toggle")
 async def admin_projects_toggle(
     project_id: int,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Toggle project status between active and completed."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    project.status = "completed" if project.status == "active" else "active"
+    if project.status == "active":
+        project.status = "completed"
+    elif project.status == "completed":
+        project.status = "active"
+    else:
+        return _redirect("/admin/projects", error="invalid_toggle")
+
     project.updated_at = datetime.utcnow()
     db.commit()
     return _redirect("/admin/projects", msg="project_toggled")
@@ -385,13 +347,10 @@ async def admin_projects_toggle(
 async def admin_project_members(
     project_id: int,
     request: Request,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Manage project members."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -432,13 +391,10 @@ async def admin_project_members(
 async def admin_project_members_add(
     project_id: int,
     user_id: int = Form(...),
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Add a user to a project."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     project = db.query(Project).filter_by(id=project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -463,13 +419,10 @@ async def admin_project_members_add(
 async def admin_project_members_remove(
     project_id: int,
     member_user_id: int,
-    current_user: Union[User, RedirectResponse] = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: DbSession = Depends(get_db_session),
 ):
     """Remove a user from a project."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     membership = (
         db.query(ProjectMember)
         .filter_by(project_id=project_id, user_id=member_user_id)

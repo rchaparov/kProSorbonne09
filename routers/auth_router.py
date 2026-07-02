@@ -4,16 +4,15 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import Session as DbSession
 
 from auth import login_user, logout_user
 from database import Session as UserSession, User, get_db_session
 from limiter import limiter
+from main import templates
 
 router = APIRouter(tags=["auth"])
-templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/login")

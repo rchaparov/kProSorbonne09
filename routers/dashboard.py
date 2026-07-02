@@ -4,13 +4,12 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import Integer, func
 from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count
 from database import ChecklistItem, Project, ProjectMember, get_db_session
+from main import templates
 from utils.nav import nav_context
 from utils.progress import (
     PROJECT_STATUSES,
@@ -20,7 +19,6 @@ from utils.progress import (
 )
 
 router = APIRouter(tags=["dashboard"])
-templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/")
@@ -32,9 +30,6 @@ async def dashboard(
     db: DbSession = Depends(get_db_session),
 ):
     """Render the project list for all authenticated users."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     query = db.query(Project).order_by(Project.created_at.desc())
 
     active_status = status if status in PROJECT_STATUSES else None

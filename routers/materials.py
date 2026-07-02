@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session as DbSession, joinedload
 
@@ -20,12 +19,12 @@ from database import (
     User,
     get_db_session,
 )
+from main import templates
 from utils.file_viewer import serve_file_for_view
 from utils.nav import nav_context
 from utils.uploads import read_validated_files
 
 router = APIRouter(tags=["materials"])
-templates = Jinja2Templates(directory="templates")
 
 INLINE_TYPES = {
     "application/pdf",
@@ -35,13 +34,6 @@ INLINE_TYPES = {
     "image/webp",
     "image/svg+xml",
 }
-
-
-def _require_user(current_user):
-    """Return authenticated user or redirect response."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-    return current_user
 
 
 def _file_disposition(content_type: str) -> str:
@@ -113,10 +105,6 @@ async def materials_list(
     db: DbSession = Depends(get_db_session),
 ):
     """Render materials grouped by category with optional filter."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     query = (
         db.query(Material)
         .options(joinedload(Material.author), joinedload(Material.files))
@@ -127,7 +115,7 @@ async def materials_list(
         query = query.filter_by(category=active_category)
     mine_only = bool(mine)
     if mine_only:
-        query = query.filter_by(added_by=user.id)
+        query = query.filter_by(added_by=current_user.id)
 
     materials = query.all()
 
@@ -148,16 +136,16 @@ async def materials_list(
         "materials.html",
         {
             "request": request,
-            "current_user": user,
+            "current_user": current_user,
             "categories": MATERIAL_CATEGORIES,
             "category": active_category,
             "grouped": grouped,
             "material_items": material_items,
             "mine_only": mine_only,
             "msg": request.query_params.get("msg"),
-            "unread_count": get_unread_count(user, db),
+            "unread_count": get_unread_count(current_user, db),
             "office_viewer_enabled": bool(settings.BASE_URL),
-            **nav_context(user, db),
+            **nav_context(current_user, db),
         },
     )
 
@@ -169,18 +157,14 @@ async def material_new_form(
     db: DbSession = Depends(get_db_session),
 ):
     """Render the new material form."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     return templates.TemplateResponse(
         "material_form.html",
         {
             "request": request,
-            "current_user": user,
+            "current_user": current_user,
             "categories": MATERIAL_CATEGORIES,
-            "unread_count": get_unread_count(user, db),
-            **nav_context(user, db),
+            "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db),
         },
     )
 
@@ -196,10 +180,6 @@ async def material_create(
     db: DbSession = Depends(get_db_session),
 ):
     """Create a new knowledge base material."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
 
     title = title.strip()
@@ -213,7 +193,7 @@ async def material_create(
         description=description or None,
         category=category,
         url=url or None,
-        added_by=user.id,
+        added_by=current_user.id,
     )
     db.add(material)
     db.flush()
@@ -232,25 +212,21 @@ async def material_edit_form(
     db: DbSession = Depends(get_db_session),
 ):
     """Render the material edit form."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     material = db.query(Material).filter_by(id=material_id).first()
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
-    if not _can_delete_material(material, user):
+    if not _can_delete_material(material, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     return templates.TemplateResponse(
         "material_edit.html",
         {
             "request": request,
-            "current_user": user,
+            "current_user": current_user,
             "material": material,
             "categories": MATERIAL_CATEGORIES,
-            "unread_count": get_unread_count(user, db),
-            **nav_context(user, db),
+            "unread_count": get_unread_count(current_user, db),
+            **nav_context(current_user, db),
         },
     )
 
@@ -266,14 +242,10 @@ async def material_edit(
     db: DbSession = Depends(get_db_session),
 ):
     """Update material metadata."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     material = db.query(Material).filter_by(id=material_id).first()
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
-    if not _can_delete_material(material, user):
+    if not _can_delete_material(material, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     title = title.strip()
@@ -295,14 +267,10 @@ async def material_add_files(
     db: DbSession = Depends(get_db_session),
 ):
     """Add files to an existing material."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     material = db.query(Material).filter_by(id=material_id).first()
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
-    if not _can_delete_material(material, user):
+    if not _can_delete_material(material, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     payloads = await read_validated_files(files, settings.MAX_UPLOAD_BYTES)
@@ -321,14 +289,10 @@ async def material_delete(
     db: DbSession = Depends(get_db_session),
 ):
     """Delete a material if permitted."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     material = db.query(Material).filter_by(id=material_id).first()
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
-    if not _can_delete_material(material, user):
+    if not _can_delete_material(material, current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     db.delete(material)
@@ -344,10 +308,6 @@ async def material_file_download(
     db: DbSession = Depends(get_db_session),
 ):
     """Download a material file."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     material_file = (
         db.query(MaterialFile)
         .filter_by(id=file_id, material_id=material_id)
@@ -375,10 +335,6 @@ async def material_file_view(
     db: DbSession = Depends(get_db_session),
 ):
     """View a material file inline when supported."""
-    user = _require_user(current_user)
-    if isinstance(user, RedirectResponse):
-        return user
-
     material_file = (
         db.query(MaterialFile)
         .filter_by(id=file_id, material_id=material_id)

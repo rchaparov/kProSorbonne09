@@ -2,15 +2,14 @@
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session as DbSession
 
 from auth import get_current_user, get_unread_count
 from database import Notification, get_db_session
+from main import templates
 from utils.nav import nav_context
 
 router = APIRouter(tags=["notifications"])
-templates = Jinja2Templates(directory="templates")
 
 
 @router.get("/notifications")
@@ -20,9 +19,6 @@ async def notifications_page(
     db: DbSession = Depends(get_db_session),
 ):
     """Render the user's notification list."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     notifications = (
         db.query(Notification)
         .filter_by(user_id=current_user.id)
@@ -48,9 +44,6 @@ async def read_all_notifications(
     db: DbSession = Depends(get_db_session),
 ):
     """Mark all notifications as read for the current user."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     db.query(Notification).filter_by(user_id=current_user.id, is_read=False).update(
         {"is_read": True}
     )
@@ -65,9 +58,6 @@ async def read_one_notification(
     db: DbSession = Depends(get_db_session),
 ):
     """Mark one notification as read and redirect to the related project."""
-    if isinstance(current_user, RedirectResponse):
-        return current_user
-
     notification = (
         db.query(Notification)
         .filter_by(id=notification_id, user_id=current_user.id)
