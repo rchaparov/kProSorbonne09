@@ -68,7 +68,6 @@ def check_css_classes() -> list[str]:
         "no-materials-results",
         "materials-grid",
         "materials-sections",
-        "menu-open",
         "drag-over",
         "note-content",
     })
