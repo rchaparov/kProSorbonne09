@@ -103,16 +103,43 @@ textarea.drop-zone.drag-over {
     text-decoration: none;
     color: inherit;
     background: white;
-    border: 0.5px solid #e5e7eb;
+    border: 1px solid #e5e7eb;
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    transition: border-color 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.15s, box-shadow 0.15s;
     position: relative;
 }
 
 .project-card:hover {
-    border-color: #6366f1;
+    border-color: #c7d2fe;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+}
+
+.surface-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.note-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-material-card] {
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+[data-material-card]:hover {
+    border-color: #c7d2fe;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
 }
 
 .card-stripe {
@@ -348,4 +375,140 @@ textarea.drop-zone.drag-over {
 }
 .tab-scroll::-webkit-scrollbar {
     display: none;
+}
+
+.table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll table {
+    min-width: 480px;
+}
+
+.project-bottom-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    z-index: 40;
+}
+
+@media (min-width: 768px) {
+    .project-bottom-tabs {
+        display: none !important;
+    }
+}
+
+.project-bottom-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: #9ca3af;
+    font-size: 9px;
+    font-weight: 500;
+    min-width: 56px;
+    min-height: 48px;
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.project-bottom-tab.active {
+    color: #4f46e5;
+}
+
+.project-bottom-tab .ti {
+    font-size: 21px;
+}
+
+.project-bottom-tab-count {
+    position: absolute;
+    top: 0;
+    right: 6px;
+    font-size: 8px;
+    background: #eef2ff;
+    color: #4f46e5;
+    border-radius: 9999px;
+    padding: 1px 5px;
+    font-weight: 600;
+}
+
+@media (max-width: 767px) {
+    .tabs-header-desktop {
+        display: none;
+    }
+
+    body.project-page main {
+        padding-bottom: 5.5rem !important;
+    }
+
+    body.project-page #scroll-top-btn {
+        bottom: 5.5rem;
+    }
+
+    .icon-btn,
+    button[title]:not([type="submit"]),
+    a[title] {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tab-btn {
+        padding: 14px 16px;
+    }
+
+    .checklist-toggle {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        margin: -6px 0;
+    }
+
+    input,
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+
+    form button[type="submit"] {
+        width: 100%;
+        min-height: 48px;
+    }
+
+    form[data-no-loading] button[type="submit"] {
+        width: auto;
+        min-height: 44px;
+    }
+
+    main {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .card-body {
+        padding: 14px;
+    }
+
+    select[multiple] {
+        min-height: 120px;
+    }
+
+    h1 {
+        font-size: 1.25rem !important;
+    }
 }

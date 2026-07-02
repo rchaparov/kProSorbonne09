@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block body_class %}project-page{% endblock %}
+
+{% block bottom_nav %}{% endblock %}
+
 {% block title %}{{ project.title }} — K-PRO Sorbonne 09 TeamSpace{% endblock %}
 
 {% block breadcrumbs %}
@@ -12,10 +16,19 @@
 
 {% block content %}
 <div class="mb-8 {% if project.status in ('completed', 'on_hold') %}opacity-60{% endif %}">
-    <h1 class="text-2xl font-bold text-gray-900">{{ project.title }}</h1>
-    {% if project.description %}
-    <p class="mt-2 text-gray-600">{{ project.description }}</p>
-    {% endif %}
+    <div class="flex items-start gap-2">
+        <a href="/" class="md:hidden icon-btn text-indigo-600 flex-shrink-0 -ml-1" title="Назад" aria-label="Назад">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+        </a>
+        <div class="min-w-0 flex-1">
+            <h1 class="text-2xl font-bold text-gray-900">{{ project.title }}</h1>
+            {% if project.description %}
+            <p class="mt-2 text-gray-600">{{ project.description }}</p>
+            {% endif %}
+        </div>
+    </div>
 
     <div class="mt-4 flex flex-wrap items-center gap-2">
         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ status_colors.get(project.status, 'bg-gray-100 text-gray-700') }}">
@@ -57,7 +70,7 @@
         </span>
     </div>
 
-    <div class="mt-4 bg-white rounded-lg shadow p-4">
+    <div class="mt-4 bg-white rounded-lg shadow border border-gray-200 p-4">
         <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-gray-700">Прогресс проекта</span>
             <span class="text-sm font-semibold text-indigo-600">{{ progress_pct }}%</span>
@@ -75,8 +88,8 @@
     </div>
 </div>
 
-<div class="bg-white shadow rounded-lg overflow-hidden">
-    <div class="flex border-b border-gray-200 overflow-x-auto tab-scroll" role="tablist">
+<div class="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
+    <div class="flex border-b border-gray-200 overflow-x-auto tab-scroll tabs-header-desktop" role="tablist">
         <button type="button" data-tab="notes" class="tab-btn active flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 flex-shrink-0" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
@@ -115,7 +128,7 @@
 
     <div class="tab-panel p-6" id="panel-notes">
         {% if can_write %}
-        <div class="bg-white shadow rounded-lg p-6">
+        <div class="surface-card p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Добавить заметку</h2>
             <script id="members-data" type="application/json">{{ members_json | safe }}</script>
             <form
@@ -216,7 +229,7 @@
             {% if note_items %}
             <div class="space-y-4">
                 {% for item in note_items %}
-                <div class="bg-white shadow rounded-lg p-6">
+                <div class="note-card p-6">
                     <div class="flex items-start gap-3">
                         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-semibold text-indigo-700">
                             {% set parts = item.author.full_name.split() %}
@@ -506,7 +519,7 @@
             {% for item in checklist_items %}
             <div class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0" data-done="{{ item.is_done|lower }}">
                 {% if can_write %}
-                <form action="/checklist/{{ item.id }}/toggle" method="post" class="flex-shrink-0">
+                <form action="/checklist/{{ item.id }}/toggle" method="post" class="flex-shrink-0 checklist-toggle">
                     <button type="submit" class="inline-flex items-center" title="{% if item.is_done %}Снять отметку{% else %}Выполнено{% endif %}">
                         <input
                             type="checkbox"
@@ -1185,6 +1198,33 @@ document.addEventListener('click', function(e) {
 })();
 </script>
 
+<div class="project-bottom-tabs" role="tablist">
+    <button type="button" data-tab="notes" class="project-bottom-tab active">
+        <i class="ti ti-message" aria-hidden="true"></i>
+        <span>Обсуждение</span>
+        <span class="project-bottom-tab-count">{{ total_roots }}</span>
+    </button>
+    <button type="button" data-tab="checklist" class="project-bottom-tab">
+        <i class="ti ti-checkup-list" aria-hidden="true"></i>
+        <span>Чеклист</span>
+        <span class="project-bottom-tab-count">{{ checklist_done }}/{{ checklist_total }}</span>
+    </button>
+    <button type="button" data-tab="materials" class="project-bottom-tab">
+        <i class="ti ti-book" aria-hidden="true"></i>
+        <span>Материалы</span>
+        <span class="project-bottom-tab-count">{{ project_materials|length }}</span>
+    </button>
+    <button type="button" data-tab="analytics" class="project-bottom-tab">
+        <i class="ti ti-chart-bar" aria-hidden="true"></i>
+        <span>Аналитика</span>
+    </button>
+    <button type="button" data-tab="members" class="project-bottom-tab">
+        <i class="ti ti-users" aria-hidden="true"></i>
+        <span>Участники</span>
+        <span class="project-bottom-tab-count">{{ members|length }}</span>
+    </button>
+</div>
+
 <button
     id="scroll-top-btn"
     type="button"
@@ -1198,13 +1238,13 @@ document.addEventListener('click', function(e) {
 
 <script>
 (function() {
-    const tabs = document.querySelectorAll('.tab-btn');
+    const allTabButtons = document.querySelectorAll('.tab-btn, .project-bottom-tab');
     const panels = document.querySelectorAll('.tab-panel');
     const validTabs = ['notes', 'checklist', 'materials', 'analytics', 'members'];
 
     function activate(tabName) {
         if (!validTabs.includes(tabName)) tabName = 'notes';
-        tabs.forEach(function(btn) {
+        allTabButtons.forEach(function(btn) {
             btn.classList.toggle('active', btn.dataset.tab === tabName);
         });
         panels.forEach(function(panel) {
@@ -1213,7 +1253,7 @@ document.addEventListener('click', function(e) {
         window.activeProjectTab = tabName;
     }
 
-    tabs.forEach(function(btn) {
+    allTabButtons.forEach(function(btn) {
         btn.addEventListener('click', function() {
             history.replaceState(null, '', '#' + this.dataset.tab);
             activate(this.dataset.tab);

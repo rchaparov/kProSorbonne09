@@ -26,13 +26,16 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen {% block body_class %}{% endblock %}">
     {% if current_user %}
     <nav class="bg-white border-b border-gray-200 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex h-16 items-center justify-between">
+            <div class="flex h-14 md:h-16 items-center justify-between">
                 <div class="flex items-center gap-3 min-w-0">
-                    <a href="/" class="text-lg font-semibold text-gray-900 truncate">K-PRO Sorbonne 09</a>
+                    <a href="/" class="text-lg font-semibold text-gray-900 truncate">
+                        <span class="hidden min-[400px]:inline">K-PRO Sorbonne 09</span>
+                        <span class="min-[400px]:hidden">K-PRO S09</span>
+                    </a>
                     <div class="relative hidden md:block" id="projects-dropdown-wrapper">
                         <button type="button" id="projects-dropdown-btn" class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
                             Проекты
@@ -82,7 +85,7 @@
                         <button
                             type="button"
                             id="search-toggle"
-                            class="inline-flex items-center p-2 text-gray-600 hover:text-indigo-600"
+                            class="icon-btn inline-flex items-center p-2 text-gray-600 hover:text-indigo-600"
                             title="Поиск"
                             aria-label="Поиск"
                         >
@@ -142,6 +145,17 @@
             </div>
         </div>
     </nav>
+    <div id="mobile-search-bar" class="hidden md:hidden border-b border-gray-200 bg-white px-3 py-2">
+        <form action="/search" method="get" data-no-loading>
+            <input
+                type="search"
+                id="mobile-search-input"
+                name="q"
+                placeholder="Поиск..."
+                class="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+            >
+        </form>
+    </div>
     {% endif %}
 
     <main class="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20 md:pb-0">
@@ -149,6 +163,7 @@
         {% block content %}{% endblock %}
     </main>
 
+    {% block bottom_nav %}
     {% if current_user %}
     <nav class="bottom-nav md:hidden" aria-label="Мобильная навигация">
         <a href="/" class="bottom-nav-item {% if request.url.path == '/' %}active{% endif %}">
@@ -176,6 +191,7 @@
         </a>
     </nav>
     {% endif %}
+    {% endblock %}
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
@@ -367,10 +383,20 @@
         const toggle = document.getElementById('search-toggle');
         const form = document.getElementById('search-form');
         const input = document.getElementById('search-input');
-        if (!toggle || !form || !input) return;
+        const mobileBar = document.getElementById('mobile-search-bar');
+        const mobileInput = document.getElementById('mobile-search-input');
+        if (!toggle) return;
 
         toggle.addEventListener('click', function(e) {
             e.stopPropagation();
+            if (window.matchMedia('(max-width: 767px)').matches && mobileBar) {
+                mobileBar.classList.toggle('hidden');
+                if (!mobileBar.classList.contains('hidden') && mobileInput) {
+                    mobileInput.focus();
+                }
+                return;
+            }
+            if (!form || !input) return;
             form.classList.toggle('hidden');
             if (!form.classList.contains('hidden')) {
                 input.focus();
@@ -378,7 +404,10 @@
         });
 
         document.addEventListener('click', function(e) {
-            if (!form.contains(e.target) && e.target !== toggle) {
+            if (mobileBar && !mobileBar.contains(e.target) && e.target !== toggle) {
+                mobileBar.classList.add('hidden');
+            }
+            if (form && !form.contains(e.target) && e.target !== toggle) {
                 form.classList.add('hidden');
             }
         });
