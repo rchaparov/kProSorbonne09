@@ -143,7 +143,85 @@
         {% block content %}{% endblock %}
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
     <script>
+    function renderMarkdownHtml(text) {
+        if (typeof marked === 'undefined' || typeof DOMPurify === 'undefined') {
+            return '';
+        }
+        return DOMPurify.sanitize(marked.parse(text || ''));
+    }
+
+    function renderNoteContent(selector) {
+        document.querySelectorAll(selector || '.note-content:not([data-rendered]):not(#note-preview)').forEach(function(el) {
+            const text = el.textContent;
+            el.innerHTML = renderMarkdownHtml(text);
+            el.dataset.rendered = 'true';
+        });
+    }
+
+    function setupDropZone(dropEl, fileInput) {
+        if (!dropEl || !fileInput) return;
+
+        dropEl.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropEl.classList.add('drag-over');
+        });
+        dropEl.addEventListener('dragleave', function(e) {
+            if (!dropEl.contains(e.relatedTarget)) {
+                dropEl.classList.remove('drag-over');
+            }
+        });
+        dropEl.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropEl.classList.remove('drag-over');
+            const dt = new DataTransfer();
+            Array.from(fileInput.files || []).forEach(function(f) { dt.items.add(f); });
+            Array.from(e.dataTransfer.files).forEach(function(f) { dt.items.add(f); });
+            fileInput.files = dt.files;
+            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        if (dropEl.classList.contains('drop-zone') && dropEl.tagName !== 'TEXTAREA') {
+            dropEl.addEventListener('click', function(e) {
+                if (e.target === fileInput) return;
+                fileInput.click();
+            });
+        }
+    }
+
+    function initMultiFileInputs(root) {
+        const scope = root || document;
+        scope.querySelectorAll('.multi-file-input').forEach(function(fileInput) {
+            const fileList = fileInput.parentElement
+                ? fileInput.parentElement.querySelector('.selected-files-list')
+                : null;
+            if (fileList && !fileInput.dataset.fileListBound) {
+                fileInput.dataset.fileListBound = 'true';
+                fileInput.addEventListener('change', function() {
+                    fileList.innerHTML = '';
+                    Array.from(this.files).forEach(function(file) {
+                        const chip = document.createElement('span');
+                        chip.className = 'inline-flex items-center gap-1 text-xs bg-gray-100 rounded-full px-2 py-1';
+                        chip.textContent = file.name;
+                        fileList.appendChild(chip);
+                    });
+                });
+            }
+            const dropEl = fileInput.closest('.drop-zone');
+            if (dropEl && !dropEl.dataset.dropBound) {
+                dropEl.dataset.dropBound = 'true';
+                setupDropZone(dropEl, fileInput);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        renderNoteContent();
+        initMultiFileInputs();
+    });
+
     document.addEventListener('submit', function(e) {
         const form = e.target.tagName === 'FORM' ? e.target : e.target.closest('form');
         if (!form) return;

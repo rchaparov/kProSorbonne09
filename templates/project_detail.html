@@ -249,13 +249,27 @@
                 <div class="relative" id="note-textarea-wrapper">
                     <textarea
                         name="content"
+                        id="note-content-textarea"
                         rows="4"
                         required
                         placeholder="Текст заметки... Используйте @ для отметки участников"
-                        class="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+                        class="drop-zone w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600"
                     ></textarea>
+                    <div
+                        id="note-preview"
+                        class="note-content hidden w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 min-h-[6rem] bg-gray-50"
+                    ></div>
                 </div>
-                <p class="text-xs text-gray-400 mt-1"><span class="text-xs text-gray-400">Ctrl+Enter для отправки</span></p>
+                <div class="flex flex-wrap items-center justify-between gap-2 mt-1">
+                    <p class="text-xs text-gray-400"><span class="text-xs text-gray-400">**жирный**, *курсив*, `код`, &gt; цитата · Ctrl+Enter для отправки</span></p>
+                    <button
+                        type="button"
+                        id="note-preview-btn"
+                        class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                        Предпросмотр
+                    </button>
+                </div>
 
                 {% if all_materials %}
                 <details class="mt-2">
@@ -278,14 +292,17 @@
 
                 <div>
                     <label for="note-file" class="block text-sm font-medium text-gray-700 mb-1">Файлы (необязательно, до 5)</label>
-                    <input
-                        type="file"
-                        id="note-file"
-                        name="files"
-                        multiple
-                        class="multi-file-input text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
-                    >
-                    <div id="selected-files-list" class="selected-files-list flex flex-wrap gap-1 mt-2"></div>
+                    <div class="drop-zone" id="note-file-drop">
+                        <input
+                            type="file"
+                            id="note-file"
+                            name="files"
+                            multiple
+                            class="multi-file-input hidden"
+                        >
+                        <p class="text-sm text-gray-500 text-center pointer-events-none">Перетащите файлы сюда</p>
+                        <div id="selected-files-list" class="selected-files-list flex flex-wrap gap-1 mt-2"></div>
+                    </div>
                 </div>
 
                 <button
@@ -363,7 +380,7 @@
                                 {{ item.note.quoted_content[:150] }}{% if item.note.quoted_content|length > 150 %}...{% endif %}
                             </div>
                             {% endif %}
-                            <p class="text-gray-700 whitespace-pre-wrap">{{ item.note.content }}</p>
+                            <div class="note-content text-gray-700">{{ item.note.content }}</div>
 
                             {% if item.mentions %}
                             <div class="mt-2 flex flex-wrap gap-1">
@@ -533,7 +550,7 @@
                                         {{ reply.quoted_content[:100] }}{% if reply.quoted_content|length > 100 %}...{% endif %}
                                     </div>
                                     {% endif %}
-                                    <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ reply.content }}</p>
+                                    <div class="note-content text-sm text-gray-700">{{ reply.content }}</div>
                                 </div>
                             </div>
                             {% endfor %}
@@ -931,16 +948,50 @@ document.addEventListener('click', function(e) {
             ? fileInput.parentElement.querySelector('.selected-files-list')
             : null;
         if (!fileList) return;
-        fileInput.addEventListener('change', function() {
-            fileList.innerHTML = '';
-            Array.from(this.files).forEach(function(file) {
-                const chip = document.createElement('span');
-                chip.className = 'inline-flex items-center gap-1 text-xs bg-gray-100 rounded-full px-2 py-1';
-                chip.textContent = file.name;
-                fileList.appendChild(chip);
+        if (!fileInput.dataset.fileListBound) {
+            fileInput.dataset.fileListBound = 'true';
+            fileInput.addEventListener('change', function() {
+                fileList.innerHTML = '';
+                Array.from(this.files).forEach(function(file) {
+                    const chip = document.createElement('span');
+                    chip.className = 'inline-flex items-center gap-1 text-xs bg-gray-100 rounded-full px-2 py-1';
+                    chip.textContent = file.name;
+                    fileList.appendChild(chip);
+                });
             });
-        });
+        }
     });
+
+    const noteFile = document.getElementById('note-file');
+    const noteFileDrop = document.getElementById('note-file-drop');
+    if (noteFile && noteFileDrop && !noteFileDrop.dataset.dropBound) {
+        noteFileDrop.dataset.dropBound = 'true';
+        setupDropZone(noteFileDrop, noteFile);
+    }
+    if (noteFile && textarea && !textarea.dataset.dropBound) {
+        textarea.dataset.dropBound = 'true';
+        setupDropZone(textarea, noteFile);
+    }
+    initMultiFileInputs(form);
+
+    const previewBtn = document.getElementById('note-preview-btn');
+    const previewEl = document.getElementById('note-preview');
+    let previewMode = false;
+    if (previewBtn && previewEl && textarea) {
+        previewBtn.addEventListener('click', function() {
+            previewMode = !previewMode;
+            if (previewMode) {
+                previewEl.innerHTML = renderMarkdownHtml(textarea.value);
+                previewEl.classList.remove('hidden');
+                textarea.classList.add('hidden');
+                previewBtn.textContent = 'Редактировать';
+            } else {
+                previewEl.classList.add('hidden');
+                textarea.classList.remove('hidden');
+                previewBtn.textContent = 'Предпросмотр';
+            }
+        });
+    }
 })();
 </script>
 {% endif %}

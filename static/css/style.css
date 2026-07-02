@@ -14,3 +14,81 @@ input:focus,
 button:focus {
     outline: none;
 }
+
+.note-content h1,
+.note-content h2,
+.note-content h3 {
+    font-weight: 600;
+    margin-top: 0.75em;
+    margin-bottom: 0.25em;
+}
+
+.note-content h1 {
+    font-size: 1.2rem;
+}
+
+.note-content h2 {
+    font-size: 1.1rem;
+}
+
+.note-content code {
+    background: #f3f4f6;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.875em;
+}
+
+.note-content pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.note-content pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.note-content blockquote {
+    border-left: 3px solid #6366f1;
+    padding-left: 12px;
+    color: #6b7280;
+    margin: 8px 0;
+}
+
+.note-content ul,
+.note-content ol {
+    padding-left: 1.5em;
+    margin: 4px 0;
+}
+
+.note-content a {
+    color: #4f46e5;
+    text-decoration: underline;
+}
+
+.drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 12px;
+    transition: all 0.15s;
+    cursor: pointer;
+}
+
+.drop-zone.drag-over {
+    border-color: #6366f1;
+    background-color: #eef2ff;
+}
+
+textarea.drop-zone {
+    cursor: text;
+}
+
+textarea.drop-zone.drag-over {
+    border-color: #6366f1;
+    background-color: #eef2ff;
+}
