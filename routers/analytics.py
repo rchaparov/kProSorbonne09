@@ -17,6 +17,7 @@ from database import (
     get_db_session,
 )
 from main import templates
+from utils.analytics_helpers import _sparkline_notes
 from utils.nav import nav_context
 from utils.progress import PROJECT_STATUS_LABELS, project_progress
 
@@ -29,23 +30,6 @@ STATUS_BAR_COLORS = {
     "on_hold": "#D85A30",
     "completed": "#639922",
 }
-
-
-def _sparkline_notes(db: DbSession, now: datetime) -> tuple[list[dict], int]:
-    """Return daily note counts for the last 14 days."""
-    day_start_base = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    sparkline_data = []
-    for i in range(13, -1, -1):
-        day_start = day_start_base - timedelta(days=i)
-        day_end = day_start + timedelta(days=1)
-        count = (
-            db.query(func.count(Note.id))
-            .filter(Note.created_at >= day_start, Note.created_at < day_end)
-            .scalar()
-        ) or 0
-        sparkline_data.append({"date": day_start, "count": count})
-    sparkline_max = max((day["count"] for day in sparkline_data), default=1) or 1
-    return sparkline_data, sparkline_max
 
 
 @router.get("/analytics")
@@ -66,10 +50,7 @@ async def analytics_page(
     )
     status_counts = {status: 0 for status in PROJECT_STATUS_LABELS}
     for status, count in status_rows:
-        if status in status_counts:
-            status_counts[status] = count
-        else:
-            status_counts[status] = count
+        status_counts[status] = count
     total_projects = sum(status_counts.values())
     active_projects_count = sum(
         count for status, count in status_counts.items() if status != "completed"

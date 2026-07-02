@@ -1,5 +1,7 @@
 """TeamSpace application entry point."""
 
+import os
+import time
 from datetime import datetime
 
 from fastapi import FastAPI, Request
@@ -18,6 +20,8 @@ validate_settings()
 app = FastAPI(title="K-PRO Sorbonne 09 TeamSpace", docs_url=None, redoc_url=None)
 app.state.limiter = limiter
 templates = Jinja2Templates(directory="templates")
+STATIC_VERSION = os.environ.get("RAILWAY_GIT_COMMIT_SHA", str(int(time.time())))[:8]
+templates.env.globals["static_version"] = STATIC_VERSION
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

@@ -2,7 +2,7 @@
 
 import json
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
@@ -30,6 +30,7 @@ from utils.progress import (
 )
 from utils.nav import nav_context
 from utils.pagination import paginate_range
+from utils.analytics_helpers import _sparkline_notes
 from main import templates
 
 router = APIRouter(tags=["projects"])
@@ -160,23 +161,8 @@ async def project_detail(
     )
 
     now = datetime.utcnow()
-    day_start_base = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    project_sparkline_data = []
-    for i in range(13, -1, -1):
-        day_start = day_start_base - timedelta(days=i)
-        day_end = day_start + timedelta(days=1)
-        count = (
-            db.query(func.count(Note.id))
-            .filter(
-                Note.project_id == project_id,
-                Note.created_at >= day_start,
-                Note.created_at < day_end,
-            )
-            .scalar()
-        ) or 0
-        project_sparkline_data.append({"date": day_start, "count": count})
-    project_sparkline_max = (
-        max((day["count"] for day in project_sparkline_data), default=1) or 1
+    project_sparkline_data, project_sparkline_max = _sparkline_notes(
+        db, now, project_id=project_id
     )
 
     project_top_authors = (
