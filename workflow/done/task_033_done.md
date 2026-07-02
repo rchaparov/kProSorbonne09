@@ -27,7 +27,7 @@
 - [x] section-nav-link удалён: Да
 
 ## Git
-- commit hash: (ожидает commit)
+- commit hash: c097a4c
 - push: ожидает «ПРИНЯТО»
 
 ## Замечания
