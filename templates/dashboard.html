@@ -32,83 +32,88 @@
     </div>
 </div>
 
+{% set status_stripe = {
+    'planning': '#888780',
+    'active': '#378ADD',
+    'review': '#BA7517',
+    'on_hold': '#D85A30',
+    'completed': '#639922'
+} %}
+
 {% if projects %}
 <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
     {% for project in projects %}
+    {% set last_note = last_notes.get(project.id) %}
+    {% set project_members = members_per_project.get(project.id, []) %}
+    {% set pct = progress_pcts.get(project.id, 0) %}
+    {% set bar_color = progress_colors.get(project.id, '#378ADD') %}
+    {% set stats = checklist_stats.get(project.id) %}
     <a
         href="/projects/{{ project.id }}"
         data-project-card
         data-title="{{ project.title | lower | e }}"
-        class="block bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow {% if project.status in ('completed', 'on_hold') %}opacity-60{% endif %}"
+        class="project-card block no-underline text-inherit {% if project.status in ('completed', 'on_hold') %}opacity-65{% endif %}"
     >
-        <div class="flex items-start gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-indigo-600 flex-shrink-0" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-            </svg>
-            <div class="min-w-0 flex-1">
-                <h2 class="text-lg font-semibold text-gray-900 truncate">{{ project.title }}</h2>
-                {% if project.description %}
-                <p class="mt-1 text-sm text-gray-600">
-                    {% if project.description|length > 100 %}
-                    {{ project.description[:100] }}...
-                    {% else %}
-                    {{ project.description }}
-                    {% endif %}
-                </p>
-                {% endif %}
-            </div>
-        </div>
+        <div class="card-stripe" style="background: {{ status_stripe.get(project.status, '#888780') }}"></div>
+        {% if last_note and last_note > activity_threshold %}
+        <div class="new-event-dot"></div>
+        {% endif %}
 
-        <div class="mt-4 space-y-2">
-            {% if project.deadline %}
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 9v7.5" />
-                </svg>
-                <time data-utc="{{ project.deadline.isoformat() }}" class="text-xs text-gray-600">{{ project.deadline.strftime('%d.%m.%Y') }}</time>
-                {% if project.deadline < now %}
-                <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                    Просрочен на {{ (now - project.deadline).days }} дн.
-                </span>
-                {% else %}
-                <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                    Осталось {{ (project.deadline - now).days }} дн.
+        <div class="card-body">
+            <div class="card-header">
+                <h2 class="card-title">{{ project.title }}</h2>
+                {% if project.deadline %}
+                <span class="card-deadline-badge {% if project.deadline < now %}card-deadline-overdue{% else %}card-deadline-ok{% endif %}">
+                    <time data-utc="{{ project.deadline.isoformat() }}">{{ project.deadline.strftime('%d.%m') }}</time>
                 </span>
                 {% endif %}
             </div>
+
+            {% if project.description %}
+            <p class="card-description">{{ project.description }}</p>
             {% endif %}
 
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ status_colors.get(project.status, 'bg-gray-100 text-gray-700') }}">
-                    {{ status_labels.get(project.status, project.status) }}
-                </span>
-            </div>
-
-            {% set pct = progress_pcts.get(project.id, 0) %}
-            <div class="mt-2">
-                <div class="flex items-center justify-between mb-1">
+            <div class="card-progress">
+                <div class="card-progress-labels">
                     <span class="text-xs text-gray-500">
-                        {% set stats = checklist_stats.get(project.id) %}
                         {% if stats and stats.total > 0 %}
                         Задачи: {{ stats.done }}/{{ stats.total }}
                         {% else %}
                         По статусу
                         {% endif %}
                     </span>
-                    <span class="text-xs font-semibold text-indigo-600">{{ pct }}%</span>
+                    <span class="text-xs font-semibold text-gray-700">{{ pct }}%</span>
                 </div>
-                <div class="bg-gray-200 rounded-full h-1.5">
-                    <div class="bg-indigo-600 h-1.5 rounded-full transition-all" style="width: {{ pct }}%"></div>
+                <div class="card-progress-track">
+                    <div class="card-progress-fill" style="width: {{ pct }}%; background: {{ bar_color }}"></div>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                    </svg>
-                    {{ member_counts.get(project.id, 0) }} участн.
+            <div class="card-footer">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ status_colors.get(project.status, 'bg-gray-100 text-gray-700') }}">
+                    {{ status_labels.get(project.status, project.status) }}
                 </span>
+                <div class="card-footer-right">
+                    {% if last_note %}
+                    <span class="activity-time">
+                        <i class="ti ti-message" aria-hidden="true"></i>
+                        <time data-utc="{{ last_note.isoformat() }}" data-timeago>{{ last_note.strftime('%d.%m') }}</time>
+                    </span>
+                    {% endif %}
+                    {% if project_members %}
+                    <div class="card-avatars">
+                        {% for member in project_members[:3] %}
+                        {% set parts = member.full_name.split() %}
+                        <span class="card-avatar" title="{{ member.full_name }}">
+                            {% if parts|length >= 2 %}{{ (parts[0][0] + parts[1][0])|upper }}{% else %}{{ parts[0][:2]|upper }}{% endif %}
+                        </span>
+                        {% endfor %}
+                        {% if project_members|length > 3 %}
+                        <span class="card-avatar card-avatar-more">+{{ project_members|length - 3 }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </a>

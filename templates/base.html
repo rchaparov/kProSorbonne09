@@ -6,6 +6,7 @@
     <title>{% block title %}K-PRO Sorbonne 09 TeamSpace{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
     <style>
         @media (max-width: 767px) {
             #nav-links.menu-open {
@@ -32,7 +33,7 @@
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center gap-3 min-w-0">
                     <a href="/" class="text-lg font-semibold text-gray-900 truncate">K-PRO Sorbonne 09</a>
-                    <div class="relative" id="projects-dropdown-wrapper">
+                    <div class="relative hidden md:block" id="projects-dropdown-wrapper">
                         <button type="button" id="projects-dropdown-btn" class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
                             Проекты
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4" aria-hidden="true">
@@ -55,7 +56,7 @@
                     <button
                         type="button"
                         id="burger-btn"
-                        class="md:hidden inline-flex items-center p-2 rounded-md text-gray-600 hover:bg-gray-100"
+                        class="hidden items-center p-2 rounded-md text-gray-600 hover:bg-gray-100"
                         aria-label="Меню"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6" aria-hidden="true">
@@ -105,7 +106,7 @@
                             >
                         </form>
                     </div>
-                    <a href="/notifications" class="relative inline-flex items-center p-2 text-gray-600 hover:text-indigo-600" title="Уведомления">
+                    <a href="/notifications" class="relative hidden md:inline-flex items-center p-2 text-gray-600 hover:text-indigo-600" title="Уведомления">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                         </svg>
@@ -113,7 +114,7 @@
                         <span class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 text-xs font-bold text-white bg-red-600 rounded-full">{{ unread_count }}</span>
                         {% endif %}
                     </a>
-                    <div class="flex items-center gap-2 text-sm text-gray-700">
+                    <div class="hidden md:flex items-center gap-2 text-sm text-gray-700">
                         <a href="/profile" class="inline-flex items-center gap-2 hover:text-indigo-600">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-500 hidden sm:block" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -124,7 +125,7 @@
                         <span class="hidden sm:inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">{{ current_user.business_role }}</span>
                         {% endif %}
                     </div>
-                    <form action="/logout" method="post">
+                    <form action="/logout" method="post" class="hidden md:block">
                         <button type="submit" class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-indigo-600">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
@@ -132,16 +133,49 @@
                             <span class="hidden sm:inline">Выйти</span>
                         </button>
                     </form>
+                    <a href="/profile" class="md:hidden inline-flex items-center p-2 text-gray-600 hover:text-indigo-600" title="Профиль">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+                    </a>
                 </div>
             </div>
         </div>
     </nav>
     {% endif %}
 
-    <main class="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-20 md:pb-0">
         {% block breadcrumbs %}{% endblock %}
         {% block content %}{% endblock %}
     </main>
+
+    {% if current_user %}
+    <nav class="bottom-nav md:hidden" aria-label="Мобильная навигация">
+        <a href="/" class="bottom-nav-item {% if request.url.path == '/' %}active{% endif %}">
+            <i class="ti ti-layout-grid" aria-hidden="true"></i>
+            <span>Проекты</span>
+        </a>
+        <a href="/materials" class="bottom-nav-item {% if request.url.path.startswith('/materials') %}active{% endif %}">
+            <i class="ti ti-book" aria-hidden="true"></i>
+            <span>Материалы</span>
+        </a>
+        <a href="/analytics" class="bottom-nav-item {% if request.url.path == '/analytics' %}active{% endif %}">
+            <i class="ti ti-chart-bar" aria-hidden="true"></i>
+            <span>Аналитика</span>
+        </a>
+        <a href="/notifications" class="bottom-nav-item {% if request.url.path == '/notifications' %}active{% endif %}">
+            <i class="ti ti-bell" aria-hidden="true"></i>
+            {% if unread_count is defined and unread_count > 0 %}
+            <span class="bottom-nav-badge"></span>
+            {% endif %}
+            <span>События</span>
+        </a>
+        <a href="/profile" class="bottom-nav-item {% if request.url.path == '/profile' %}active{% endif %}">
+            <i class="ti ti-user" aria-hidden="true"></i>
+            <span>Профиль</span>
+        </a>
+    </nav>
+    {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
@@ -285,7 +319,10 @@
         const diff = Math.floor((now - date) / 1000);
         if (diff < 60) return 'только что';
         if (diff < 3600) return Math.floor(diff / 60) + ' мин назад';
-        if (diff < 86400) return Math.floor(diff / 3600) + ' ч назад';
+        if (diff < 86400) return Math.floor(diff / 3600) + ' ч. назад';
+        const days = Math.floor(diff / 86400);
+        if (days === 1) return 'вчера';
+        if (days < 7) return days + ' ' + (days >= 2 && days <= 4 ? 'дня' : 'дней') + ' назад';
         return date.toLocaleString('ru');
     }
 

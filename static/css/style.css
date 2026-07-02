@@ -92,3 +92,212 @@ textarea.drop-zone.drag-over {
     border-color: #6366f1;
     background-color: #eef2ff;
 }
+
+.opacity-65 {
+    opacity: 0.65;
+}
+
+.project-card {
+    background: white;
+    border: 0.5px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+}
+
+.project-card:hover {
+    border-color: #6366f1;
+}
+
+.card-stripe {
+    height: 3px;
+}
+
+.new-event-dot {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #378ADD;
+    border: 1.5px solid white;
+}
+
+.card-body {
+    padding: 16px;
+}
+
+.card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.35;
+    min-width: 0;
+}
+
+.card-deadline-badge {
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 9999px;
+}
+
+.card-deadline-overdue {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.card-deadline-ok {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.card-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.card-progress {
+    margin-bottom: 12px;
+}
+
+.card-progress-labels {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.card-progress-track {
+    background: #e5e7eb;
+    border-radius: 9999px;
+    height: 6px;
+    overflow: hidden;
+}
+
+.card-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.2s;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 0.5px solid #f3f4f6;
+}
+
+.card-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.activity-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6875rem;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.activity-time .ti {
+    font-size: 12px;
+}
+
+.card-avatars {
+    display: flex;
+    align-items: center;
+}
+
+.card-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 500;
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1.5px solid white;
+    margin-left: -6px;
+    text-transform: uppercase;
+}
+
+.card-avatar:first-child {
+    margin-left: 0;
+}
+
+.card-avatar-more {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 0.5px solid #e5e7eb;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    z-index: 40;
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    text-decoration: none;
+    color: #9ca3af;
+    font-size: 9px;
+    font-weight: 500;
+    position: relative;
+    min-width: 48px;
+}
+
+.bottom-nav-item.active {
+    color: #4f46e5;
+}
+
+.bottom-nav-item .ti {
+    font-size: 20px;
+}
+
+.bottom-nav-badge {
+    position: absolute;
+    top: -2px;
+    right: 8px;
+    width: 7px;
+    height: 7px;
+    background: #e24b4a;
+    border-radius: 50%;
+    border: 1.5px solid white;
+}
