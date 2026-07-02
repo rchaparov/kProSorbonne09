@@ -2,7 +2,7 @@
 
 import json
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func
@@ -15,10 +15,12 @@ from database import (
     ChecklistItemAssignee,
     Material,
     Note,
+    NoteAttachment,
     NoteMaterialLink,
     NoteMention,
     Project,
     ProjectMember,
+    User,
     get_db_session,
 )
 from utils.progress import (
@@ -157,6 +159,91 @@ async def project_detail(
         project.status, checklist_done, checklist_total
     )
 
+    now = datetime.utcnow()
+    day_start_base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    project_sparkline_data = []
+    for i in range(13, -1, -1):
+        day_start = day_start_base - timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        count = (
+            db.query(func.count(Note.id))
+            .filter(
+                Note.project_id == project_id,
+                Note.created_at >= day_start,
+                Note.created_at < day_end,
+            )
+            .scalar()
+        ) or 0
+        project_sparkline_data.append({"date": day_start, "count": count})
+    project_sparkline_max = (
+        max((day["count"] for day in project_sparkline_data), default=1) or 1
+    )
+
+    project_top_authors = (
+        db.query(User, func.count(Note.id).label("note_count"))
+        .join(Note, Note.author_id == User.id)
+        .filter(Note.project_id == project_id, Note.parent_id.is_(None))
+        .group_by(User.id)
+        .order_by(func.count(Note.id).desc())
+        .limit(5)
+        .all()
+    )
+    project_top_max = project_top_authors[0][1] if project_top_authors else 1
+
+    checklist_overdue = (
+        db.query(func.count(ChecklistItem.id))
+        .filter(
+            ChecklistItem.project_id == project_id,
+            ChecklistItem.is_done.is_(False),
+            ChecklistItem.deadline.isnot(None),
+            ChecklistItem.deadline < now,
+        )
+        .scalar()
+    ) or 0
+
+    all_item_ids = [item.id for item in checklist_items]
+    assigned_item_ids = (
+        {
+            row[0]
+            for row in db.query(ChecklistItemAssignee.item_id)
+            .filter(ChecklistItemAssignee.item_id.in_(all_item_ids))
+            .all()
+        }
+        if all_item_ids
+        else set()
+    )
+    checklist_unassigned = sum(
+        1
+        for item in checklist_items
+        if not item.is_done and item.id not in assigned_item_ids
+    )
+
+    total_notes_count = (
+        db.query(func.count(Note.id)).filter_by(project_id=project_id).scalar()
+    ) or 0
+
+    attachments_count = (
+        db.query(func.count(NoteAttachment.id))
+        .join(Note, NoteAttachment.note_id == Note.id)
+        .filter(Note.project_id == project_id)
+        .scalar()
+    ) or 0
+
+    materials_count = (
+        db.query(func.count(NoteMaterialLink.id))
+        .join(Note, NoteMaterialLink.note_id == Note.id)
+        .filter(Note.project_id == project_id)
+        .scalar()
+    ) or 0
+
+    if project.deadline:
+        if project.deadline < now:
+            deadline_days_label = f"просрочен на {(now - project.deadline).days} дн."
+        else:
+            deadline_days_label = str((project.deadline - now).days)
+    else:
+        deadline_days_label = None
+
     return templates.TemplateResponse(
         "project_detail.html",
         {
@@ -172,7 +259,7 @@ async def project_detail(
             "all_materials": all_materials,
             "can_write": can_write,
             "office_viewer_enabled": bool(settings.BASE_URL),
-            "now": datetime.utcnow(),
+            "now": now,
             "unread_count": get_unread_count(current_user, db),
             "page": page,
             "total_pages": total_pages,
@@ -185,6 +272,16 @@ async def project_detail(
             "progress_pct": progress_pct,
             "status_labels": PROJECT_STATUS_LABELS,
             "status_colors": PROJECT_STATUS_COLORS,
+            "project_sparkline_data": project_sparkline_data,
+            "project_sparkline_max": project_sparkline_max,
+            "project_top_authors": project_top_authors,
+            "project_top_max": project_top_max,
+            "checklist_overdue": checklist_overdue,
+            "checklist_unassigned": checklist_unassigned,
+            "attachments_count": attachments_count,
+            "materials_count": materials_count,
+            "total_notes_count": total_notes_count,
+            "deadline_days_label": deadline_days_label,
             **nav_context(current_user, db, project_id),
         },
     )

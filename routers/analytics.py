@@ -22,6 +22,31 @@ from utils.progress import PROJECT_STATUS_LABELS, project_progress
 
 router = APIRouter(tags=["analytics"])
 
+STATUS_BAR_COLORS = {
+    "planning": "#888780",
+    "active": "#378ADD",
+    "review": "#BA7517",
+    "on_hold": "#D85A30",
+    "completed": "#639922",
+}
+
+
+def _sparkline_notes(db: DbSession, now: datetime) -> tuple[list[dict], int]:
+    """Return daily note counts for the last 14 days."""
+    day_start_base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    sparkline_data = []
+    for i in range(13, -1, -1):
+        day_start = day_start_base - timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        count = (
+            db.query(func.count(Note.id))
+            .filter(Note.created_at >= day_start, Note.created_at < day_end)
+            .scalar()
+        ) or 0
+        sparkline_data.append({"date": day_start, "count": count})
+    sparkline_max = max((day["count"] for day in sparkline_data), default=1) or 1
+    return sparkline_data, sparkline_max
+
 
 @router.get("/analytics")
 async def analytics_page(
@@ -31,6 +56,8 @@ async def analytics_page(
 ):
     """Render aggregated team analytics for all authenticated users."""
     now = datetime.utcnow()
+    week_ago = now - timedelta(days=7)
+    two_weeks_ago = now - timedelta(days=14)
 
     status_rows = (
         db.query(Project.status, func.count(Project.id))
@@ -44,6 +71,9 @@ async def analytics_page(
         else:
             status_counts[status] = count
     total_projects = sum(status_counts.values())
+    active_projects_count = sum(
+        count for status, count in status_counts.items() if status != "completed"
+    )
 
     risk_threshold = now + timedelta(days=3)
     risky_projects = (
@@ -80,9 +110,6 @@ async def analytics_page(
     ]
     workload.sort(key=lambda row: row["open_tasks"], reverse=True)
 
-    active_projects = [
-        project for project in db.query(Project).all() if project.status != "completed"
-    ]
     checklist_totals = dict(
         db.query(ChecklistItem.project_id, func.count(ChecklistItem.id))
         .group_by(ChecklistItem.project_id)
@@ -92,6 +119,13 @@ async def analytics_page(
         db.query(ChecklistItem.project_id, func.count(ChecklistItem.id))
         .filter(ChecklistItem.is_done.is_(True))
         .group_by(ChecklistItem.project_id)
+        .all()
+    )
+
+    active_projects = (
+        db.query(Project)
+        .filter(Project.status.notin_(["completed"]))
+        .order_by(Project.title)
         .all()
     )
     progresses = [
@@ -104,10 +138,42 @@ async def analytics_page(
     ]
     avg_progress = round(sum(progresses) / len(progresses)) if progresses else 0
 
-    week_ago = now - timedelta(days=7)
+    project_progress_list = []
+    for project in active_projects:
+        total = checklist_totals.get(project.id, 0)
+        done = checklist_dones.get(project.id, 0)
+        pct = project_progress(project.status, done, total)
+        project_progress_list.append(
+            {
+                "project": project,
+                "pct": pct,
+                "done": done,
+                "total": total,
+                "bar_color": STATUS_BAR_COLORS.get(project.status, "#378ADD"),
+            }
+        )
+    project_progress_list.sort(key=lambda row: row["pct"], reverse=True)
+
     notes_this_week = (
         db.query(func.count(Note.id)).filter(Note.created_at >= week_ago).scalar()
     ) or 0
+    notes_prev_week = (
+        db.query(func.count(Note.id))
+        .filter(Note.created_at >= two_weeks_ago, Note.created_at < week_ago)
+        .scalar()
+    ) or 0
+    notes_delta = notes_this_week - notes_prev_week
+
+    sparkline_data, sparkline_max = _sparkline_notes(db, now)
+
+    top_authors = (
+        db.query(User, func.count(Note.id).label("note_count"))
+        .join(Note, Note.author_id == User.id)
+        .group_by(User.id)
+        .order_by(func.count(Note.id).desc())
+        .limit(5)
+        .all()
+    )
 
     return templates.TemplateResponse(
         "analytics.html",
@@ -117,10 +183,17 @@ async def analytics_page(
             "status_counts": status_counts,
             "status_labels": PROJECT_STATUS_LABELS,
             "total_projects": total_projects,
+            "active_projects_count": active_projects_count,
             "risky_projects": risky_projects,
             "workload": workload,
             "avg_progress": avg_progress,
             "notes_this_week": notes_this_week,
+            "notes_delta": notes_delta,
+            "sparkline_data": sparkline_data,
+            "sparkline_max": sparkline_max,
+            "top_authors": top_authors,
+            "project_progress_list": project_progress_list,
+            "status_bar_colors": STATUS_BAR_COLORS,
             "now": now,
             "unread_count": get_unread_count(current_user, db),
             **nav_context(current_user, db),

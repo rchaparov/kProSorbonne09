@@ -16,6 +16,84 @@
     <p class="mt-1 text-sm text-gray-600">Сводная картина по всей команде</p>
 </div>
 
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+    <div class="bg-white shadow rounded-lg p-4">
+        <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Активных проектов</p>
+        <p style="font-size:26px;font-weight:500">{{ active_projects_count }}</p>
+        <p style="font-size:11px;color:#9ca3af">из {{ total_projects }} всего</p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4">
+        <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Заметок за 7 дней</p>
+        <p style="font-size:26px;font-weight:500">{{ notes_this_week }}</p>
+        <p style="font-size:11px;color:{% if notes_delta > 0 %}#3B6D11{% elif notes_delta < 0 %}#A32D2D{% else %}#9ca3af{% endif %}">
+            {% if notes_delta > 0 %}↑ +{{ notes_delta }}{% elif notes_delta < 0 %}↓ {{ notes_delta|abs }}{% else %}= 0{% endif %} vs прошлая неделя
+        </p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4">
+        <p style="font-size:11px;color:#9ca3af;margin-bottom:4px">Средний прогресс</p>
+        <p style="font-size:26px;font-weight:500">{{ avg_progress }}%</p>
+        <p style="font-size:11px;color:#9ca3af">по активным проектам</p>
+    </div>
+</div>
+
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Активность за 14 дней</h2>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:40px;">
+        {% for day in sparkline_data %}
+        {% set h = (day.count / sparkline_max * 100)|round|int %}
+        <div style="flex:1;border-radius:2px 2px 0 0;background:#378ADD;opacity:0.7;height:{{ [h, 5]|max }}%;min-height:2px;"
+             title="{{ day.date.strftime('%d.%m') }}: {{ day.count }} заметок"></div>
+        {% endfor %}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:10px;color:#9ca3af">{{ sparkline_data[0].date.strftime('%d.%m') }}</span>
+        <span style="font-size:10px;color:#9ca3af">{{ sparkline_data[-1].date.strftime('%d.%m') }}</span>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Топ авторов заметок</h2>
+        {% if top_authors %}
+        <ul class="space-y-3">
+            {% for author, note_count in top_authors %}
+            {% set parts = author.full_name.split() %}
+            <li class="flex items-center gap-3">
+                <span class="card-avatar flex-shrink-0" title="{{ author.full_name }}">
+                    {% if parts|length >= 2 %}{{ (parts[0][0] + parts[1][0])|upper }}{% else %}{{ parts[0][:2]|upper }}{% endif %}
+                </span>
+                <span class="text-sm text-gray-900 flex-1 min-w-0 truncate">{{ author.full_name }}</span>
+                <span class="text-sm font-medium text-gray-600">{{ note_count }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-gray-400">Заметок пока нет</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Сравнение проектов по прогрессу</h2>
+        {% if project_progress_list %}
+        <div class="space-y-3">
+            {% for row in project_progress_list %}
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <a href="/projects/{{ row.project.id }}" class="text-gray-900 hover:text-indigo-600 truncate mr-2">{{ row.project.title }}</a>
+                    <span class="text-gray-600 flex-shrink-0">{{ row.pct }}%</span>
+                </div>
+                <div class="bg-gray-200 rounded-full h-2">
+                    <div class="h-2 rounded-full" style="width: {{ row.pct }}%; background: {{ row.bar_color }}"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400">Нет активных проектов</p>
+        {% endif %}
+    </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-white shadow rounded-lg p-6">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Проекты по статусам</h2>
@@ -79,22 +157,6 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-2">Общий прогресс</h2>
-        <div class="text-center py-4">
-            <div class="text-4xl font-bold text-indigo-600">{{ avg_progress }}%</div>
-            <div class="text-sm text-gray-500 mt-1">Средний прогресс активных проектов</div>
-        </div>
-    </div>
-
-    <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-2">Активность за неделю</h2>
-        <div class="text-center py-4">
-            <div class="text-4xl font-bold text-indigo-600">{{ notes_this_week }}</div>
-            <div class="text-sm text-gray-500 mt-1">Заметок за последние 7 дней</div>
         </div>
     </div>
 </div>
