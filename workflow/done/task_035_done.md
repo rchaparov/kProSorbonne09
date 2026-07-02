@@ -20,7 +20,7 @@
 - [x] python tests/smoke_test.py — все OK: Да (7/7)
 
 ## Git
-- commit hash: PENDING
+- commit hash: fe785ac
 - push: ожидает «ПРИНЯТО»
 
 ## Замечания
