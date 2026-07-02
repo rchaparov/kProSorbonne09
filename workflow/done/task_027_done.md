@@ -27,7 +27,7 @@
 - [x] Alembic миграция проверена (если была): N/A
 
 ## Git
-- commit hash: [вставить]
+- commit hash: 0e07048
 - branch: main
 - push: ожидает "ПРИНЯТО"
 
